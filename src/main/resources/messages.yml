@@ -12,7 +12,7 @@ give:
     item-not-found: '<red>Предмет %id% не найден!</red>'
     big-value: '<red>Число не должно превышать %max-value%</red>'
 
-take:
+take: # TODO
   success: '<green>Забрано %value% экземпляров %name%</green>'
   error:
     player-not-found: '<red>Игрок %player% не найден</red>'
