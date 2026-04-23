@@ -46,7 +46,6 @@ public class LastItemsFree extends JavaPlugin {
             getDebugLogger().warn("PlaceholderAPI not found!");
         }
 
-        // --- ИНИЦИАЛИЗАЦИЯ ПЛЕЙСХОЛДЕРОВ BLibV2 ---
         PlaceholderUtil.init();
 
         if (getServer().getPluginManager().isPluginEnabled("WorldEdit")) {
