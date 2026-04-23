@@ -1,0 +1,21 @@
+name: LastItems
+version: "0.1-BETA"
+
+depend:
+  - BLib
+
+softdepend:
+  - PlaceholderAPI
+  - WorldGuard
+  - WorldEdit
+
+main: ru.last.lastitems.LastItemsFree
+api-version: "1.21"
+author: Last
+
+description: "Плагин для кастомных предметов на 1.21 - 1.21.11"
+website: "https://lastdev.space"
+
+commands:
+  lastitems:
+    aliases: [ litems, items ]

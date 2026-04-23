@@ -1,0 +1,269 @@
+# LastItems Free - плагин на уникальные предметы с большой кастомизацией и сильной гибкостью конфигурации
+#
+#
+#
+#
+#
+# <> - player, victim или entity
+# %<>_uuid%, %<>_name%, %<>_type%, %<>_world%, %<>_<x/y/z>%, %<>_<yaw/pitch>%
+# %<>_max_health%, %<>_biome%, %<>_health%, %<>_direction%, %<>_damage_taken%
+#
+# %radius_<>_direction%, %radius_<>_health%, %radius_<>_uuid%
+
+item:
+  # название предмета
+  name: 'string'
+  # описание предмета
+  lore:
+    - 'string'
+    - string
+  all_flags: boolean
+  enchanted: boolean
+  material: stone # or basehead-<value>
+  unbreakable: boolean
+  attributes:
+    - name: string
+      attribute: 'string' # https://jd.papermc.io/paper/org/bukkit/attribute/Attribute.html
+      amount: long
+      operation: string # https://jd.papermc.io/paper/org/bukkit/attribute/AttributeModifier.Operation.html
+      slot: string # https://jd.papermc.io/paper/org/bukkit/inventory/EquipmentSlot.html
+  model_data: string # or new model_data
+  amount: int
+  damage: int
+  item_flags:
+    - string
+  color: '#aarrggbb' # or #rrggbb (#aarrggbb only 1.19.4+)
+  enchantments:
+    enchantment: lvl
+    infinity: 0
+
+# TODO
+trim: # 1.19.4+
+  material: iron # https://jd.papermc.io/paper/org/bukkit/inventory/meta/trim/TrimMaterial.html
+  pattern: coast # https://jd.papermc.io/paper/org/bukkit/inventory/meta/trim/TrimPattern.html
+enchantment_glint_override: true # 1.20.6+
+max_stack_size: 99 # 1.20.6+
+glider: true # 1.21.3+
+tooltip_style: idk # 1.21.3+
+potion_effects: #https://jd.papermc.io/paper/org/bukkit/potion/PotionEffectType.html
+  type: duration amplifier
+  night_vision: 240 1
+
+actions:
+  # on_hit
+  # on_right_click
+  # on_left_click
+  # on_projectile_impact
+  # on_projectile_throw
+  #
+  # TODO:
+  # on_kill_entity
+  # on_kill_player
+  # on_swapping (type section)
+  # on_walking
+  # on_swimming
+  - trigger: string
+    vanilla: # TODO
+      - type: cooldown # ванильный ивент задержки (белая штука от майна)
+        cancel_event: boolean
+      - type: on_right_click
+        cancel_event: boolean
+      - type: on_left_click
+        cancel_event: boolean
+      - type: on_hit
+        cancel_event: boolean
+      - type: on_projectile_impact
+        cancel_event: boolean
+      - type: on_projectile_throw
+        cancel_event: boolean
+    clear: # TODO
+      enable: boolean
+      settings:
+        - event: on_right_click # убирается если игрок нажимает ПКМ с предметом внутри
+          slot: string # off_hand или main_hand (если ничего не будет, то будет ставиться main_hand)
+        - event: on_left_click
+          slot: string
+        - event: on_hit
+          slot: string
+        - event: on_projectile_impact
+          slot: string
+        - event: on_projectile_throw
+          slot: string
+    chance: long
+    value: long
+
+    no_targets: # TODO
+      enable: boolean
+      messages:
+        - type: title
+          title: ''
+          subtitle: ''
+          time: '15;40;15'
+
+        - type: actionbar
+          message: ''
+
+        - type: chat # or message
+          message:
+            - '<>'
+
+    cooldown: # TODO
+      enable: boolean
+      time:
+        type: 'ticks' # or seconds
+        value: int
+      messages:
+        - type: chat
+          message:
+            - '<>'
+
+    effects: # or cast
+      - type: console
+        trigger: player # or entity, radius:N, all, victim:entity, victim:player
+        settings:
+          type: random
+          random:
+            - 'p give %player% 10 -s'
+            - 'p give %player% 15 -s'
+            - 'p give %player% 25 -s'
+            - 'p give %player% 30 -s'
+          default: 'p give %player% 15 -s'
+        messages:
+          - type: chat
+            message:
+              - '<>'
+
+      - type: message
+        target: player
+        messages:
+          - '<>'
+
+      - type: actionbar
+        target: player
+        message: '<>'
+
+      - type: title
+        target: player
+        settings:
+          title: ''
+          subtitle: ''
+          time: 'int;int;int'
+
+      - type: particle
+        target: player
+        settings:
+          particle: string
+          count: long
+          offset: int
+        messages:
+          - type: chat
+            messages:
+              - '<>'
+
+      - type: knockback
+        trigger: player
+        settings:
+          strength: long
+          vertical: long
+        messages:
+          - type: chat
+            message:
+              - '<>'
+
+      - type: lightning
+        target: player
+        settings:
+          fire:
+            time:
+              type: 'ticks' # or seconds
+              value: int
+          amount: int # сколько раз ударит молния в target
+        messages:
+          - type: chat
+            messages:
+              - '<>'
+
+      - type: damage
+        trigger:
+
+      - type: potion # TODO
+        trigger: player
+        settings:
+          - type: give
+            list:
+              - potion: slowness
+                time:
+                  type: 'ticks' # or seconds
+                  value: int
+                level: int
+                fall: boolean
+          - type: clear
+            #
+            trigger: all # or specific/other
+            list:
+              - 'slowness' # or minecraft:slowness, all
+
+      - type: disable_items # TODO
+        target: player
+        settings:
+          - material: ender_pearl # or custom:<>, minecraft:<>
+            time: int
+            vanilla: boolean
+            messages:
+              - type: chat
+                message:
+                  - '<>'
+
+      - type: freeze # TODO
+        target: player
+        settings:
+          time:
+            type: 'ticks' # or seconds
+            value: int
+        messages:
+          - type: chat
+            messages:
+              - '<>'
+
+      - type: worldedit # TODO
+        target: player
+        settings:
+          event: schematic_paste
+          file: string                    # Имя файла из папки WorldEdit/schematics или FastAsyncWorldEdit/schematics
+                                          # или LastItems/schematics
+          offset: 'int;int;int'           # Смещение (X;Y;Z) относительно локации цели
+          ingore_air_blocks: boolean      # Вставлять ли блоки воздуха (false = блоки карты не удалятся)
+          include_entities: boolean       # Спавнить ли сущностей из схематика (картины, рамки, мобы)
+          rotation: int                  # Поворот в градусах
+
+      - type: worldedit # TODO
+        target: player
+        settings:
+          event: schematic_undo
+          steps: 1                        # Сколько последних действий WorldEdit отменить для этого игрока
+
+      - type: worldguard # TODO
+        target: player
+        settings:
+          event: create_region
+          region_name: string # поддержка плейсхолдеров + PlaceholderAPI
+          offsets:
+            min: 'int;int;int'
+            max: 'int;int;int'
+          owners:
+            - '%player%'
+          members:
+            - '%target%'
+          flags:
+            - 'pvp deny'
+            - 'build deny'
+            - 'block-break deny'
+            - 'entry deny'
+            - 'entry-deny-message: &cВы не можете войти в защитный купол игрока %player%!'
+            - 'greeting: &aВы под защитой тотема!'
+
+      - type: worldguard # TODO
+        target: player
+        settings:
+          event: remove_region
+          region_name: string # поддержка плейсхолдеров + PlaceholderAPI

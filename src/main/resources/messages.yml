@@ -1,0 +1,26 @@
+general:
+  usage: '<gold>MyphicItems</gold> <gray>∫</gray> <white>Использование: /%command% %args%'
+  reload:
+    success: '<gold>MyphicItems</gold> <gray>∫</gray> <white>Успешная перезагрузка плагина</white> <gray>(%time%ms)</gray>'
+    error: '<red>Произошла ошибка во время перезагрузки, посмотрите консоль!</red>'
+
+give:
+  success: '<green>Получено %value% экземпляров %name%</green>'
+  error:
+    player-not-found: '<red>Игрок %player% не найден</red>'
+    value-not-number: '<red>Введите число!</red>'
+    item-not-found: '<red>Предмет %id% не найден!</red>'
+    big-value: '<red>Число не должно превышать %max-value%</red>'
+
+take:
+  success: '<green>Забрано %value% экземпляров %name%</green>'
+  error:
+    player-not-found: '<red>Игрок %player% не найден</red>'
+    value-not-number: '<red>Введите число!</red>'
+    item-not-found: '<red>Предмет %id% не найден!</red>'
+    big-value: '<red>Число не должно превышать %max-value%</red>'
+
+list:
+  no_items: '<red>Нет загруженных кастомных предметов!</red>'
+  title: '<gold>Доступные кастомные предметы (%count%):</gold>'
+  item: '<gray>- %id%:</gray> %name%'

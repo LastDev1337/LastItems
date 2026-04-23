@@ -1,0 +1,28 @@
+item:
+  id: trident
+  material: trident
+  enchanted: true
+  name: '<gradient:#FF3333:#FFFF00>Тест Трезубец</gradient>'
+  lore:
+    - ''
+    - ' &fПри броске трезубца можно получить либо 10,'
+    - ' &fлибо 15, либо 25, либо 30 PlayerPoints валюты'
+    - ''
+  model_data: 10
+  all_flags: true
+
+actions:
+  - trigger: on_hit
+    value: 1 # нужно бросить 1 раз, чтобы вызвать effects (cast) секцию
+    chance: 100 # с каким шансом секция case сработает
+
+    cast: # or effects
+      - type: console
+        trigger: player
+        commands:
+          type: random
+          random:
+            - 'p give %player% 10 -s'
+            - 'p give %player% 15 -s'
+            - 'p give %player% 25 -s'
+            - 'p give %player% 30 -s'

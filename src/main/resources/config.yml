@@ -1,0 +1,23 @@
+debug:
+  enable: true
+
+  level:
+    info:
+      enable: true
+      prefix: '[Debug] '
+    warn:
+      enable: true
+      prefix: '[Debug] '
+    error:
+      enable: true
+      prefix: '[Debug] '
+
+limits:
+  give: 64
+  take: 64
+  giveall: 64
+
+# - detail: показывает детально время (1 минута 23 секунды)
+# - simple: показывает время как ваши часы на телефоне (01:23)
+# - default: показывает время по умолчанию (1 мин. 23 сек.)
+time: detail
