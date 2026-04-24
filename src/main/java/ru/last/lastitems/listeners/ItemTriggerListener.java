@@ -39,7 +39,7 @@ public class ItemTriggerListener implements Listener {
         };
 
         if (trigger != null) {
-            customItem.executeTrigger(trigger, new TriggerContext(player, item, null));
+            customItem.executeTrigger(trigger, new TriggerContext(player, item, null, event));
         }
     }
 
@@ -51,7 +51,7 @@ public class ItemTriggerListener implements Listener {
         CustomItem customItem = itemManager.getCustomItem(item);
 
         if (customItem != null) {
-            customItem.executeTrigger(ActionTrigger.ON_HIT, new TriggerContext(player, item, event.getEntity()));
+            customItem.executeTrigger(ActionTrigger.ON_HIT, new TriggerContext(player, item, event.getEntity(), event));
         }
     }
 
@@ -72,8 +72,7 @@ public class ItemTriggerListener implements Listener {
         }
 
         if (customItem != null) {
-            customItem.executeTrigger(ActionTrigger.ON_PROJECTILE_THROW, new TriggerContext(player, item, null));
-            trident.setItemStack(item);
+            customItem.executeTrigger(ActionTrigger.ON_PROJECTILE_THROW, new TriggerContext(player, item, null, event));
         }
     }
 }

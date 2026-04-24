@@ -1,5 +1,7 @@
 package ru.last.lastitems;
 
+import org.bstats.bukkit.Metrics;
+import org.bstats.charts.SimplePie;
 import org.bukkit.NamespacedKey;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -8,7 +10,6 @@ import ru.last.lastitems.debug.DebugLogger;
 import ru.last.lastitems.config.*;
 import ru.last.lastitems.listeners.ItemTriggerListener;
 import ru.last.lastitems.item.ItemManager;
-import ru.last.lastitems.managers.*;
 import ru.last.lastitems.hooks.*;
 import ru.last.lastitems.utils.PlaceholderUtil;
 
@@ -27,8 +28,6 @@ public class LastItemsFree extends JavaPlugin {
     public void onEnable() {
         instance = this;
 
-        checkPlugmanX();
-
         configManager = new ConfigManager(this);
         configManager.loadAll();
 
@@ -46,7 +45,6 @@ public class LastItemsFree extends JavaPlugin {
             getDebugLogger().warn("PlaceholderAPI not found!");
         }
 
-        // --- ИНИЦИАЛИЗАЦИЯ ПЛЕЙСХОЛДЕРОВ BLibV2 ---
         PlaceholderUtil.init();
 
         if (getServer().getPluginManager().isPluginEnabled("WorldEdit")) {
@@ -63,11 +61,20 @@ public class LastItemsFree extends JavaPlugin {
             getDebugLogger().warn("WorldGuard not found!");
         }
 
+        int pluginId = 30928;
+        Metrics metrics = new Metrics(this, pluginId);
+
+        metrics.addCustomChart(
+                new SimplePie("chart_id", () -> "LastItems Free")
+        );
+
         MainCommand commandHandler = new MainCommand(this);
         Objects.requireNonNull(getCommand("lastitems")).setExecutor(commandHandler);
         Objects.requireNonNull(getCommand("lastitems")).setTabCompleter(commandHandler);
 
         getServer().getPluginManager().registerEvents(new ItemTriggerListener(this.itemManager), this);
+
+        checkPlugmanX();
 
         getLogger().info("v" + getPluginMeta().getVersion() + " enabled successfully!");
     }
@@ -75,7 +82,7 @@ public class LastItemsFree extends JavaPlugin {
     private void checkPlugmanX() {
         if (getServer().getPluginManager().isPluginEnabled("PlugmanX") || getServer().getPluginManager().isPluginEnabled("PlugMan")) {
             getLogger().warning("================ !!! ПРЕДУПРЕЖДЕНИЕ !!! ================");
-            getLogger().warning("На вашем сервере был найден PlugMan.");
+            getLogger().warning("На вашем сервере был найден PlugMan!");
             getLogger().warning("Категорически не рекомендуем им пользоваться!");
             getLogger().warning("");
             getLogger().warning("Если вы хотите с ним остаться, ваше право, но поддержку");

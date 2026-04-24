@@ -4,6 +4,9 @@ import dev.by1337.plc.PapiResolver;
 import dev.by1337.plc.PlaceholderResolver;
 import dev.by1337.plc.Placeholders;
 import dev.by1337.plc.PlaceholderSyntax;
+import dev.by1337.core.util.text.minimessage.MiniMessage;
+
+import net.kyori.adventure.text.Component;
 
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
@@ -41,8 +44,19 @@ public final class PlaceholderUtil {
     }
 
     public static String replace(String text, TriggerContext context, Entity target) {
-        if (text == null || text.isEmpty() || text.indexOf('%') == -1) return text;
+        if (text == null || text.isEmpty()) return text;
+
+        if (context.formattedTime() != null) {
+            text = text.replace("%time%", context.formattedTime());
+        }
+
+        if (text.indexOf('%') == -1) return text;
         return RESOLVER.setPlaceholders(text, new ResolveData(context, target));
+    }
+
+    public static Component color(String text) {
+        if (text == null) return Component.empty();
+        return MiniMessage.deserialize(text);
     }
 
     private static String resolveEntity(Entity entity, String param) {
@@ -83,7 +97,7 @@ public final class PlaceholderUtil {
         if (yaw >= 202.5 && yaw < 247.5) return "NE";
         if (yaw >= 247.5 && yaw < 292.5) return "E";
         if (yaw >= 292.5 && yaw < 337.5) return "SE";
-        return "Null";
+        return "N";
     }
 
     public record ResolveData(TriggerContext context, Entity target) {}

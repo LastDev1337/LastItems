@@ -1,6 +1,7 @@
-package ru.last.lastitems.effects;
+package ru.last.lastitems.item.effects;
 
 import org.bukkit.entity.Entity;
+import ru.last.lastitems.item.ItemEffect;
 import ru.last.lastitems.item.TriggerContext;
 import ru.last.lastitems.utils.TargetResolver;
 
@@ -31,6 +32,6 @@ public class LightningEffect implements ItemEffect {
                 target.setFireTicks(target.getFireTicks() + fireTicks);
             }
         }
-        return false;
+        return true;
     }
 }

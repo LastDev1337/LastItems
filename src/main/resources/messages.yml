@@ -1,11 +1,14 @@
 general:
-  usage: '<gold>MyphicItems</gold> <gray>∫</gray> <white>Использование: /%command% %args%'
+  usage: '<gold>MyphicItems</gold> <gray>∫</gray> <white>Использование: /%command% %args%</white>'
+  no_permission: '<red>У вас нет прав для выполнения этой команды!</red>'
+  console_player_required: '<red>Консоль должна указывать ник игрока!</red>'
   reload:
     success: '<gold>MyphicItems</gold> <gray>∫</gray> <white>Успешная перезагрузка плагина</white> <gray>(%time%ms)</gray>'
     error: '<red>Произошла ошибка во время перезагрузки, посмотрите консоль!</red>'
 
 give:
-  success: '<green>Получено %value% экземпляров %name%</green>'
+  success: '<green>Получено %value% шт. %name%</green>'
+  success_other: '<green>Выдано %value% шт. %name% игроку %player%</green>'
   error:
     player-not-found: '<red>Игрок %player% не найден</red>'
     value-not-number: '<red>Введите число!</red>'
@@ -13,7 +16,8 @@ give:
     big-value: '<red>Число не должно превышать %max-value%</red>'
 
 take:
-  success: '<green>Забрано %value% экземпляров %name%</green>'
+  success: '<green>У вас забрали %value% шт. %name%</green>'
+  success_other: '<green>Забрано %value% шт. %name% у игрока %player%</green>'
   error:
     player-not-found: '<red>Игрок %player% не найден</red>'
     value-not-number: '<red>Введите число!</red>'
@@ -22,5 +26,5 @@ take:
 
 list:
   no_items: '<red>Нет загруженных кастомных предметов!</red>'
-  title: '<gold>Доступные кастомные предметы (%count%):</gold>'
-  item: '<gray>- %id%:</gray> %name%'
+  title: '<gold>Предметы:</gold>'
+  item: '<gray>- %id%</gray>'

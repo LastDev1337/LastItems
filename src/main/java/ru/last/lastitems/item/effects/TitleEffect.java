@@ -1,10 +1,11 @@
-package ru.last.lastitems.effects;
+package ru.last.lastitems.item.effects;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.title.Title;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import ru.last.lastitems.item.ItemEffect;
 import ru.last.lastitems.item.TriggerContext;
 import ru.last.lastitems.utils.PlaceholderUtil;
 import ru.last.lastitems.utils.TargetResolver;
@@ -41,15 +42,12 @@ public class TitleEffect implements ItemEffect {
 
         for (Entity target : targets) {
             if (target instanceof Player p) {
-                String parsedTitle = PlaceholderUtil.replace(titleRaw, context, p);
-                String parsedSubtitle = PlaceholderUtil.replace(subtitleRaw, context, p);
-
-                Component mainTitle = mm.deserialize(parsedTitle);
-                Component subTitle = mm.deserialize(parsedSubtitle);
+                Component mainTitle = PlaceholderUtil.color(PlaceholderUtil.replace(titleRaw, context, p));
+                Component subTitle = PlaceholderUtil.color(PlaceholderUtil.replace(subtitleRaw, context, p));
 
                 p.showTitle(Title.title(mainTitle, subTitle, times));
             }
         }
-        return false;
+        return true;
     }
 }

@@ -35,19 +35,13 @@ public class PlaceHook extends PlaceholderExpansion {
     }
 
     @Override
-    public @NotNull String getAuthor() {
-        return plugin.getPluginMeta().getAuthors().isEmpty() ? "Unknown" : plugin.getPluginMeta().getAuthors().getFirst();
-    }
+    public @NotNull String getAuthor() { return plugin.getPluginMeta().getAuthors().getFirst(); }
 
     @Override
-    public @NotNull String getVersion() {
-        return plugin.getPluginMeta().getVersion();
-    }
+    public @NotNull String getVersion() { return plugin.getPluginMeta().getVersion(); }
 
     @Override
-    public boolean persist() {
-        return true;
-    }
+    public boolean persist() { return true; }
 
     @Override
     public @Nullable String onRequest(OfflinePlayer offlinePlayer, @NotNull String params) {
@@ -68,7 +62,7 @@ public class PlaceHook extends PlaceholderExpansion {
                 slotStr = args[args.length - 2];
                 itemId = buildString(args, args.length - 2);
             } else {
-                return "Null format placeholder! Pls use that -> %lastitem_amount_<item id>_<inventory type>_[player_name]%";
+                return "Null format placeholder! Pls use that -> %lastitems_amount_<item id>_<inventory type>_[player_name]%";
             }
 
             Player target = targetName != null ? Bukkit.getPlayerExact(targetName) : (offlinePlayer != null ? offlinePlayer.getPlayer() : null);

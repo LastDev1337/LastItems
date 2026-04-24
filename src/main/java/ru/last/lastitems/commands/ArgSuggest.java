@@ -39,12 +39,8 @@ public class ArgSuggest extends Argument<CommandSender, String> {
     }
 
     @Override
-    public boolean compilable() {
-        return true;
-    }
+    public boolean compilable() { return true; }
 
     @Override
-    public boolean allowAsync() {
-        return true;
-    }
+    public boolean allowAsync() { return true; }
 }

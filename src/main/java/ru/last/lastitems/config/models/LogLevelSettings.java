@@ -7,8 +7,8 @@ public class LogLevelSettings {
     private final String prefix;
 
     public LogLevelSettings(YamlMap map, String defaultPrefix) {
-        this.enable = map.get("enable") != null ? map.get("enable").asBool(true) : true;
-        this.prefix = map.get("prefix") != null ? map.get("prefix").asString(defaultPrefix) : defaultPrefix;
+        this.enable = map.get("enable").asBool(true);
+        this.prefix = map.get("prefix").asString(defaultPrefix);
     }
 
     public boolean isEnable() { return enable; }

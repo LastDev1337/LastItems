@@ -14,7 +14,7 @@ item:
 actions:
   - trigger: on_hit
     value: 1 # нужно бросить 1 раз, чтобы вызвать effects (cast) секцию
-    chance: 100 # с каким шансом секция case сработает
+    chance: 100.0 # с каким шансом секция case сработает
 
     cast: # or effects
       - type: console

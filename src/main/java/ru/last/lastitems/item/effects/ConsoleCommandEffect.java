@@ -1,7 +1,8 @@
-package ru.last.lastitems.effects;
+package ru.last.lastitems.item.effects;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
+import ru.last.lastitems.item.ItemEffect;
 import ru.last.lastitems.item.TriggerContext;
 import ru.last.lastitems.utils.PlaceholderUtil;
 import ru.last.lastitems.utils.TargetResolver;
@@ -42,6 +43,6 @@ public class ConsoleCommandEffect implements ItemEffect {
             String finalCmd = PlaceholderUtil.replace(commandToRun, context, target);
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCmd);
         }
-        return false;
+        return true;
     }
 }

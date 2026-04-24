@@ -1,14 +1,5 @@
 # LastItems Free - плагин на уникальные предметы с большой кастомизацией и сильной гибкостью конфигурации
-#
-#
-#
-#
-#
-# <> - player, victim или entity
-# %<>_uuid%, %<>_name%, %<>_type%, %<>_world%, %<>_<x/y/z>%, %<>_<yaw/pitch>%
-# %<>_max_health%, %<>_biome%, %<>_health%, %<>_direction%, %<>_damage_taken%
-#
-# %radius_<>_direction%, %radius_<>_health%, %radius_<>_uuid%
+# Википедия плагина: https://wiki.lastdev.space/lastitems или https://docs.lastdev.space/lastitems
 
 item:
   # название предмета
@@ -36,18 +27,16 @@ item:
   enchantments:
     enchantment: lvl
     infinity: 0
-
-# TODO
-trim: # 1.19.4+
-  material: iron # https://jd.papermc.io/paper/org/bukkit/inventory/meta/trim/TrimMaterial.html
-  pattern: coast # https://jd.papermc.io/paper/org/bukkit/inventory/meta/trim/TrimPattern.html
-enchantment_glint_override: true # 1.20.6+
-max_stack_size: 99 # 1.20.6+
-glider: true # 1.21.3+
-tooltip_style: idk # 1.21.3+
-potion_effects: #https://jd.papermc.io/paper/org/bukkit/potion/PotionEffectType.html
-  type: duration amplifier
-  night_vision: 240 1
+  trim: # 1.19.4+
+    material: iron # https://jd.papermc.io/paper/org/bukkit/inventory/meta/trim/TrimMaterial.html
+    pattern: coast # https://jd.papermc.io/paper/org/bukkit/inventory/meta/trim/TrimPattern.html
+  enchantment_glint_override: true # 1.20.6+
+  max_stack_size: 99 # 1.20.6+
+  glider: true # 1.21.3+
+  tooltip_style: idk # 1.21.3+
+  potion_effects: #https://jd.papermc.io/paper/org/bukkit/potion/PotionEffectType.html
+    type: duration amplifier
+    night_vision: 240 1
 
 actions:
   # on_hit
@@ -57,59 +46,60 @@ actions:
   # on_projectile_throw
   #
   # TODO:
-  # on_kill_entity
-  # on_kill_player
+  # on_kill_entity (type section)
+  # on_kill_player (type section)
   # on_swapping (type section)
   # on_walking
   # on_swimming
   - trigger: string
+    type:
+      # https://jd.papermc.io/paper/org/bukkit/entity/EntityType.html
+      entity: string # only on_kill_<entity/player>
+      swap: string # only on_swapping
     vanilla: # TODO
-      - type: cooldown # ванильный ивент задержки (белая штука от майна)
-        cancel_event: boolean
-      - type: on_right_click
-        cancel_event: boolean
-      - type: on_left_click
-        cancel_event: boolean
-      - type: on_hit
-        cancel_event: boolean
-      - type: on_projectile_impact
-        cancel_event: boolean
-      - type: on_projectile_throw
-        cancel_event: boolean
+      cancel_events:
+        - cooldown
+        - on_right_click
+        - on_left_click
+        - on_hit
+        - on_projectile_impact
+        - on_projectile_throw
     clear: # TODO
-      enable: boolean
-      settings:
-        - event: on_right_click # убирается если игрок нажимает ПКМ с предметом внутри
+      events:
+        - type: on_right_click # убирается если игрок нажимает ПКМ с предметом внутри
           slot: string # off_hand или main_hand (если ничего не будет, то будет ставиться main_hand)
-        - event: on_left_click
+        - type: on_left_click
           slot: string
-        - event: on_hit
+        - type: on_hit
           slot: string
-        - event: on_projectile_impact
+        - type: on_projectile_impact
           slot: string
-        - event: on_projectile_throw
+        - type: on_projectile_throw
           slot: string
     chance: long
     value: long
 
-    no_targets: # TODO
+    no_targets:
       enable: boolean
       messages:
         - type: title
           title: ''
           subtitle: ''
           time: '15;40;15'
-
         - type: actionbar
           message: ''
-
         - type: chat # or message
           message:
             - '<>'
 
-    cooldown: # TODO
+    cooldown:
       enable: boolean
       time:
+        # Формат времени для плейсхолдера
+        # - detail: показывает детально время (1 минута 23 секунды)
+        # - simple: показывает время как ваши часы на телефоне (01:23)
+        # - default: показывает время по умолчанию (1 мин. 23 сек.)
+        format: detail # если нет, то default
         type: 'ticks' # or seconds
         value: int
       messages:
@@ -183,8 +173,16 @@ actions:
             messages:
               - '<>'
 
-      - type: damage
-        trigger:
+      - type: damage # TODO
+        trigger: player
+        settings:
+          amount: long
+          type: string # https://jd.papermc.io/paper/org/bukkit/damage/DamageType.html
+          effect: string # https://jd.papermc.io/paper/org/bukkit/damage/DamageEffect.html
+        messages:
+          - type: chat
+            messages:
+              - '<>'
 
       - type: potion # TODO
         trigger: player
@@ -198,10 +196,11 @@ actions:
                 level: int
                 fall: boolean
           - type: clear
-            #
+            # all - все эффекты
+            # specific/other - только из списка
             trigger: all # or specific/other
             list:
-              - 'slowness' # or minecraft:slowness, all
+              - 'slowness' # or minecraft:slowness
 
       - type: disable_items # TODO
         target: player
@@ -211,7 +210,7 @@ actions:
             vanilla: boolean
             messages:
               - type: chat
-                message:
+                messages:
                   - '<>'
 
       - type: freeze # TODO
@@ -235,12 +234,20 @@ actions:
           ingore_air_blocks: boolean      # Вставлять ли блоки воздуха (false = блоки карты не удалятся)
           include_entities: boolean       # Спавнить ли сущностей из схематика (картины, рамки, мобы)
           rotation: int                  # Поворот в градусах
+        messages:
+          - type: chat
+            messages:
+              - '<>'
 
       - type: worldedit # TODO
         target: player
         settings:
           event: schematic_undo
           steps: 1                        # Сколько последних действий WorldEdit отменить для этого игрока
+        messages:
+          - type: chat
+            messages:
+              - '<>'
 
       - type: worldguard # TODO
         target: player
@@ -259,11 +266,19 @@ actions:
             - 'build deny'
             - 'block-break deny'
             - 'entry deny'
-            - 'entry-deny-message: &cВы не можете войти в защитный купол игрока %player%!'
+            - 'entry-deny-message: &cВы не можете войти в защитный купол игрока %player_name%!'
             - 'greeting: &aВы под защитой тотема!'
+        messages:
+          - type: chat
+            messages:
+              - '<>'
 
       - type: worldguard # TODO
         target: player
         settings:
           event: remove_region
           region_name: string # поддержка плейсхолдеров + PlaceholderAPI
+        messages:
+          - type: chat
+            messages:
+              - '<>'

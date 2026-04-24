@@ -1,6 +1,7 @@
 package ru.last.lastitems.item;
 
 import dev.by1337.item.ItemModel;
+import dev.by1337.item.util.dfu.YamlUpdater;
 import dev.by1337.yaml.YamlMap;
 import dev.by1337.yaml.YamlValue;
 import dev.by1337.yaml.codec.DataResult;
@@ -15,8 +16,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import ru.last.lastitems.LastItemsFree;
-import ru.last.lastitems.effects.ItemEffect;
-import ru.last.lastitems.effects.*;
+import ru.last.lastitems.item.effects.*;
+import ru.last.lastitems.item.actions.CooldownAction;
+import ru.last.lastitems.item.actions.NoTargetAction;
 
 import java.io.File;
 import java.io.IOException;
@@ -67,6 +69,9 @@ public class ItemManager {
             YamlValue itemNode = YamlValue.wrap(rootMap.getRaw().get("item"));
             if (itemNode == YamlValue.EMPTY || !itemNode.asYamlMap().hasResult()) return;
 
+            YamlMap itemMap = itemNode.asYamlMap().getOrThrow();
+            YamlUpdater.fixItem(itemMap);
+
             DataResult<ItemModel> decodeResult = itemNode.decode(ItemModel.CODEC);
             if (decodeResult.hasError()) {
                 plugin.getDebugLogger().error("Ошибка кодека в " + fileName + ":\n" + decodeResult.error());
@@ -75,16 +80,10 @@ public class ItemManager {
             ItemModel itemModel = decodeResult.getOrThrow();
             ItemStack baseItem = itemModel.build();
 
-            YamlMap itemMap = itemNode.asYamlMap().getOrThrow();
+            int amount = itemMap.get("amount").asInt(1);
+            baseItem.setAmount(amount);
 
-            YamlValue amountNode = itemMap.get("amount");
-            if (amountNode != null && !amountNode.isNull()) {
-                baseItem.setAmount(amountNode.asInt(1));
-            }
-
-            String id = fileName.replace(".yml", "");
-            YamlValue idNode = itemMap.get("id");
-            if (idNode != null && !idNode.isNull()) id = idNode.asString(id);
+            String id = itemMap.get("id").asString(fileName.replace(".yml", ""));
 
             ItemMeta meta = baseItem.getItemMeta();
             if (meta != null) {
@@ -95,113 +94,130 @@ public class ItemManager {
             Map<ActionTrigger, List<ActionNode>> actionsMap = new EnumMap<>(ActionTrigger.class);
             YamlValue actionsNode = YamlValue.wrap(rootMap.getRaw().get("actions"));
 
-            if (actionsNode != YamlValue.EMPTY && !actionsNode.isNull()) {
-                Object rawActions = actionsNode.getRaw();
-                if (rawActions instanceof List<?> actionList) {
-                    for (Object actionObj : actionList) {
-                        YamlMap actionMap = YamlValue.wrap(actionObj).asYamlMap().getOrThrow();
-                        if (actionMap == null) continue;
+            if (actionsNode.getRaw() instanceof List<?> actionList) {
+                for (Object actionObj : actionList) {
+                    var actionMapRes = YamlValue.wrap(actionObj).asYamlMap();
+                    if (!actionMapRes.hasResult()) continue;
+                    YamlMap actionMap = actionMapRes.getOrThrow();
 
-                        String triggerName = "";
-                        YamlValue triggerNode = actionMap.get("trigger");
-                        if (triggerNode != null && !triggerNode.isNull()) {
-                            triggerName = triggerNode.asString("");
-                        }
-                        if (triggerName.isEmpty()) continue;
+                    String triggerName = actionMap.get("trigger").asString("");
+                    if (triggerName.isEmpty()) continue;
 
-                        ActionTrigger trigger;
-                        try {
-                            trigger = ActionTrigger.valueOf(triggerName.toUpperCase());
-                        } catch (IllegalArgumentException e) {
-                            plugin.getDebugLogger().error("Неизвестный триггер '" + triggerName + "' в " + fileName);
-                            continue;
-                        }
+                    ActionTrigger trigger;
+                    try {
+                        trigger = ActionTrigger.valueOf(triggerName.toUpperCase());
+                    } catch (IllegalArgumentException e) {
+                        plugin.getDebugLogger().error("Неизвестный триггер '" + triggerName + "' в " + fileName);
+                        continue;
+                    }
 
-                        YamlValue valNode = actionMap.get("value");
-                        int value = (valNode != null && !valNode.isNull()) ? valNode.asInt(1) : 1;
+                    int value = actionMap.get("value").asInt(1);
+                    double chance = actionMap.get("chance").asDouble(100.0);
 
-                        YamlValue chanceNode = actionMap.get("chance");
-                        double chance = (chanceNode != null && !chanceNode.isNull()) ? chanceNode.asDouble(100.0) : 100.0;
+                    YamlValue effectsNode = actionMap.get("effects");
+                    if (effectsNode.isNull() || effectsNode == YamlValue.EMPTY) {
+                        effectsNode = actionMap.get("cast");
+                    }
 
-                        YamlValue effectsNode = actionMap.get("effects");
-                        if (effectsNode == null || effectsNode.isNull() || effectsNode == YamlValue.EMPTY) {
-                            effectsNode = actionMap.get("cast");
-                        }
-
-                        List<ItemEffect> effects = new ArrayList<>();
-
-                        if (effectsNode != null && !effectsNode.isNull() && effectsNode.getRaw() instanceof List<?> effectList) {
-                            for (Object effObj : effectList) {
-                                List<ItemEffect> parsedEffects = parseEffect(YamlValue.wrap(effObj), fileName);
-                                if (parsedEffects != null && !parsedEffects.isEmpty()) {
-                                    effects.addAll(parsedEffects);
-                                }
+                    List<ItemEffect> effects = new ArrayList<>();
+                    if (effectsNode.getRaw() instanceof List<?> effectList) {
+                        for (Object effObj : effectList) {
+                            List<ItemEffect> parsedEffects = parseEffect(YamlValue.wrap(effObj), fileName);
+                            if (parsedEffects != null && !parsedEffects.isEmpty()) {
+                                effects.addAll(parsedEffects);
                             }
                         }
+                    }
 
-                        List<ItemEffect> noTargetEffects = new ArrayList<>();
-                        YamlValue noTargetsNode = actionMap.get("no_targets");
-                        if (noTargetsNode != null && noTargetsNode.asYamlMap().hasResult()) {
-                            YamlMap ntMap = noTargetsNode.asYamlMap().getOrThrow();
-                            YamlValue enableNode = ntMap.get("enable");
+                    YamlValue cdNode = actionMap.get("cooldown");
+                    boolean cdEnable = false;
+                    long cdMillis = 0;
+                    String cdFormat = "default";
+                    List<ItemEffect> cdEffects = new ArrayList<>();
 
-                            if (enableNode != null && enableNode.asBool(false)) {
-                                YamlValue ntMsgsNode = ntMap.get("messages");
-
-                                if (ntMsgsNode != null && ntMsgsNode.getRaw() instanceof List<?> ntList) {
-                                    for (Object ntObj : ntList) {
-                                        var ntMsgMapRes = YamlValue.wrap(ntObj).asYamlMap();
-                                        if (!ntMsgMapRes.hasResult()) continue;
-                                        YamlMap msgMap = ntMsgMapRes.getOrThrow();
-
-                                        YamlValue mTypeNode = msgMap.get("type");
-                                        String msgType = (mTypeNode != null && !mTypeNode.isNull()) ? mTypeNode.asString("").toLowerCase() : "";
-
-                                        if (msgType.equals("chat") || msgType.equals("message")) {
-                                            YamlValue textListObj = msgMap.get("messages");
-                                            if (textListObj != null && !textListObj.isNull() && textListObj.getRaw() instanceof List<?> tList) {
-                                                List<String> texts = new ArrayList<>();
-                                                for (Object t : tList) texts.add(String.valueOf(t));
-                                                noTargetEffects.add(new MessageEffect("player", texts));
-                                            }
-                                        } else if (msgType.equals("actionbar")) {
-                                            YamlValue actionNode = msgMap.get("message");
-                                            if (actionNode != null && !actionNode.isNull() && actionNode != YamlValue.EMPTY) {
-                                                noTargetEffects.add(new ActionbarEffect("player", actionNode.asString("")));
-                                            }
-                                        } else if (msgType.equals("title")) {
-                                            YamlValue tNode = msgMap.get("title");
-                                            String title = (tNode != null && !tNode.isNull()) ? tNode.asString("") : "";
-
-                                            YamlValue subNode = msgMap.get("subtitle");
-                                            String subtitle = (subNode != null && !subNode.isNull()) ? subNode.asString("") : "";
-
-                                            YamlValue timeNode = msgMap.get("time");
-                                            String timeStr = (timeNode != null && !timeNode.isNull()) ? timeNode.asString("10;70;20") : "10;70;20";
-
-                                            String[] times = timeStr.split(";");
-                                            if (times.length == 3) {
-                                                try {
-                                                    noTargetEffects.add(new TitleEffect("player", title, subtitle, Integer.parseInt(times[0]), Integer.parseInt(times[1]), Integer.parseInt(times[2])));
-                                                } catch (NumberFormatException ignored) {}
-                                            }
-                                        }
-                                    }
-                                }
+                    if (cdNode.asYamlMap().hasResult()) {
+                        YamlMap cdMap = cdNode.asYamlMap().getOrThrow();
+                        cdEnable = cdMap.get("enable").asBool(false);
+                        if (cdEnable) {
+                            YamlValue timeNode = cdMap.get("time");
+                            if (timeNode.asYamlMap().hasResult()) {
+                                YamlMap timeMap = timeNode.asYamlMap().getOrThrow();
+                                String type = timeMap.get("type").asString("ticks");
+                                int val = timeMap.get("value").asInt(0);
+                                cdFormat = timeMap.get("format").asString("default");
+                                cdMillis = type.equalsIgnoreCase("seconds") ? val * 1000L : val * 50L;
                             }
+                            cdEffects = parseMessageGroup(cdNode);
                         }
+                    }
+                    CooldownAction cooldownAction = new CooldownAction(cdEnable, cdMillis, cdFormat, cdEffects);
 
-                        if (!effects.isEmpty() || !noTargetEffects.isEmpty()) {
-                            actionsMap.computeIfAbsent(trigger, k -> new ArrayList<>()).add(new ActionNode(value, chance, effects, noTargetEffects));
+                    YamlValue noTargetsNode = actionMap.get("no_targets");
+                    boolean ntEnable = false;
+                    List<ItemEffect> ntEffects = new ArrayList<>();
+                    if (noTargetsNode.asYamlMap().hasResult()) {
+                        YamlMap ntMap = noTargetsNode.asYamlMap().getOrThrow();
+                        ntEnable = ntMap.get("enable").asBool(false);
+                        if (ntEnable) {
+                            ntEffects = parseMessageGroup(noTargetsNode);
                         }
+                    }
+                    NoTargetAction noTargetAction = new NoTargetAction(ntEnable, ntEffects);
+
+                    if (!effects.isEmpty() || ntEnable || cdEnable) {
+                        actionsMap.computeIfAbsent(trigger, k -> new ArrayList<>()).add(new ActionNode(value, chance, effects, noTargetAction, cooldownAction));
                     }
                 }
             }
-            registry.put(id, new CustomItem(id, baseItem, actionsMap));
+            registry.put(id, new CustomItem(id, itemModel, baseItem, amount, actionsMap));
 
         } catch (Exception e) {
             plugin.getDebugLogger().error("Критическая ошибка при загрузке предмета " + fileName, e);
         }
+    }
+
+    private List<ItemEffect> parseMessageGroup(YamlValue node) {
+        List<ItemEffect> result = new ArrayList<>();
+        if (!node.asYamlMap().hasResult()) return result;
+
+        YamlMap map = node.asYamlMap().getOrThrow();
+        YamlValue msgsNode = map.get("messages");
+        if (msgsNode.getRaw() instanceof List<?> list) {
+            for (Object obj : list) {
+                var mapRes = YamlValue.wrap(obj).asYamlMap();
+                if (!mapRes.hasResult()) continue;
+                YamlMap msgMap = mapRes.getOrThrow();
+
+                String msgType = msgMap.get("type").asString("").toLowerCase();
+
+                switch (msgType) {
+                    case "chat", "message" -> {
+                        YamlValue textListObj = msgMap.get("messages");
+                        if (textListObj.getRaw() instanceof List<?> tList) {
+                            List<String> texts = new ArrayList<>();
+                            for (Object t : tList) texts.add(String.valueOf(t));
+                            result.add(new MessageEffect("player", texts));
+                        }
+                    }
+                    case "actionbar" -> {
+                        String actionMsg = msgMap.get("message").asString("");
+                        if (!actionMsg.isEmpty()) result.add(new ActionbarEffect("player", actionMsg));
+                    }
+                    case "title" -> {
+                        String title = msgMap.get("title").asString("");
+                        String subtitle = msgMap.get("subtitle").asString("");
+                        String[] times = msgMap.get("time").asString("10;70;20").split(";");
+                        if (times.length == 3) {
+                            try {
+                                result.add(new TitleEffect("player", title, subtitle, Integer.parseInt(times[0]), Integer.parseInt(times[1]), Integer.parseInt(times[2])));
+                            } catch (NumberFormatException ignored) {
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return result;
     }
 
     @Nullable
@@ -213,242 +229,135 @@ public class ItemManager {
         }
 
         YamlMap map = mapRes.getOrThrow();
-        YamlValue typeNode = map.get("type");
-        if (typeNode == null || typeNode.isNull() || typeNode == YamlValue.EMPTY) {
+        String type = map.get("type").asString("").toLowerCase();
+
+        if (type.isEmpty()) {
             plugin.getDebugLogger().error("Ошибка в " + fileName + ": В эффекте не указан обязательный параметр 'type'!");
             return null;
         }
 
-        String type = typeNode.asString("").toLowerCase();
-
-        String targetSelector = "player";
-        YamlValue targetNode = map.get("target");
-        YamlValue triggerTargetNode = map.get("trigger");
-
-        if (targetNode != null && !targetNode.isNull()) {
-            targetSelector = targetNode.asString("player");
-        } else if (triggerTargetNode != null && !triggerTargetNode.isNull()) {
-            targetSelector = triggerTargetNode.asString("player");
-        }
-
+        String targetSelector = map.get("target").asString(map.get("trigger").asString("player"));
         List<ItemEffect> resultList = new ArrayList<>();
 
         switch (type) {
             case "console" -> {
                 YamlValue cmdsNode = map.get("commands");
-                if (cmdsNode == null || !cmdsNode.asYamlMap().hasResult()) {
-                    plugin.getDebugLogger().error("Ошибка в " + fileName + " (Эффект console): Ожидалась секция 'commands', но она не найдена или не является Map!");
-                    return null;
-                }
+                if (!cmdsNode.asYamlMap().hasResult()) return null;
                 YamlMap cmdsMap = cmdsNode.asYamlMap().getOrThrow();
 
-                YamlValue sTypeNode = cmdsMap.get("type");
-                String selectionType = (sTypeNode != null && !sTypeNode.isNull()) ? sTypeNode.asString("default") : "default";
-
+                String selectionType = cmdsMap.get("type").asString("default");
                 List<String> randomList = new ArrayList<>();
                 YamlValue randomNode = cmdsMap.get("random");
-                if (randomNode != null && !randomNode.isNull() && randomNode.getRaw() instanceof List<?> rList) {
+                if (randomNode.getRaw() instanceof List<?> rList) {
                     for (Object c : rList) randomList.add(String.valueOf(c));
                 }
 
-                YamlValue defNode = cmdsMap.get("default");
-                String defaultCmd = (defNode != null && !defNode.isNull()) ? defNode.asString("") : "";
+                String defaultCmd = cmdsMap.get("default").asString("");
                 resultList.add(new ConsoleCommandEffect(targetSelector, selectionType, randomList, defaultCmd));
             }
-
             case "message", "chat" -> {
                 YamlValue msgsNode = map.get("messages");
-                if (msgsNode == null || msgsNode.isNull() || msgsNode == YamlValue.EMPTY) {
-                    plugin.getDebugLogger().error("Ошибка в " + fileName + " (Эффект message): Ожидался список 'messages', но он не найден!");
-                    return null;
-                }
                 if (msgsNode.getRaw() instanceof List<?> mList) {
                     List<String> messages = new ArrayList<>();
                     for (Object m : mList) messages.add(String.valueOf(m));
                     resultList.add(new MessageEffect(targetSelector, messages));
-                } else {
-                    plugin.getDebugLogger().error("Ошибка в " + fileName + " (Эффект message): Параметр 'messages' должен быть списком!");
-                    return null;
-                }
+                } else return null;
             }
-
             case "actionbar" -> {
-                YamlValue msgNode = map.get("message");
-                if (msgNode == null || msgNode.isNull() || msgNode == YamlValue.EMPTY) {
-                    plugin.getDebugLogger().error("Ошибка в " + fileName + " (Эффект actionbar): Ожидалась строка 'message', но она не найдена!");
-                    return null;
-                }
-                resultList.add(new ActionbarEffect(targetSelector, msgNode.asString("")));
+                String msg = map.get("message").asString("");
+                if (msg.isEmpty()) return null;
+                resultList.add(new ActionbarEffect(targetSelector, msg));
             }
-
             case "title" -> {
                 YamlValue settingsNode = map.get("settings");
-                if (settingsNode == null || !settingsNode.asYamlMap().hasResult()) {
-                    plugin.getDebugLogger().error("Ошибка в " + fileName + " (Эффект title): Ожидалась секция 'settings', но она не найдена!");
-                    return null;
-                }
+                if (!settingsNode.asYamlMap().hasResult()) return null;
                 YamlMap settings = settingsNode.asYamlMap().getOrThrow();
 
-                YamlValue tNode = settings.get("title");
-                String title = (tNode != null && !tNode.isNull()) ? tNode.asString("") : "";
+                String title = settings.get("title").asString("");
+                String subtitle = settings.get("subtitle").asString("");
+                String[] times = settings.get("time").asString("10;70;20").split(";");
 
-                YamlValue subNode = settings.get("subtitle");
-                String subtitle = (subNode != null && !subNode.isNull()) ? subNode.asString("") : "";
-
-                YamlValue timeNode = settings.get("time");
-                String timeStr = (timeNode != null && !timeNode.isNull()) ? timeNode.asString("10;70;20") : "10;70;20";
-
-                String[] times = timeStr.split(";");
                 if (times.length == 3) {
                     try {
                         resultList.add(new TitleEffect(targetSelector, title, subtitle, Integer.parseInt(times[0]), Integer.parseInt(times[1]), Integer.parseInt(times[2])));
-                    } catch (NumberFormatException e) {
-                        plugin.getDebugLogger().error("Ошибка в " + fileName + " (Эффект title): Параметр 'time' содержит неверные символы. Ожидались числа (int;int;int)!");
-                    }
-                } else {
-                    plugin.getDebugLogger().error("Ошибка в " + fileName + " (Эффект title): Параметр 'time' должен состоять из 3 чисел, разделенных точкой с запятой (;). Найдено: " + timeStr);
+                    } catch (NumberFormatException ignored) {}
                 }
             }
-
             case "knockback" -> {
                 YamlValue settingsNode = map.get("settings");
-                if (settingsNode == null || !settingsNode.asYamlMap().hasResult()) {
-                    plugin.getDebugLogger().error("Ошибка в " + fileName + " (Эффект knockback): Ожидалась секция 'settings', но она не найдена!");
-                    return null;
-                }
+                if (!settingsNode.asYamlMap().hasResult()) return null;
                 YamlMap settings = settingsNode.asYamlMap().getOrThrow();
 
-                YamlValue strNode = settings.get("strength");
-                double strength = (strNode != null && !strNode.isNull()) ? strNode.asDouble(1.0) : 1.0;
-
-                YamlValue vertNode = settings.get("vertical");
-                double vertical = (vertNode != null && !vertNode.isNull()) ? vertNode.asDouble(0.5) : 0.5;
-
+                double strength = settings.get("strength").asDouble(1.0);
+                double vertical = settings.get("vertical").asDouble(0.5);
                 resultList.add(new KnockbackEffect(targetSelector, strength, vertical));
             }
-
             case "lightning" -> {
                 YamlValue settingsNode = map.get("settings");
-                if (settingsNode == null || !settingsNode.asYamlMap().hasResult()) {
-                    plugin.getDebugLogger().error("Ошибка в " + fileName + " (Эффект lightning): Ожидалась секция 'settings', но она не найдена!");
-                    return null;
-                }
+                if (!settingsNode.asYamlMap().hasResult()) return null;
                 YamlMap settings = settingsNode.asYamlMap().getOrThrow();
 
-                YamlValue amtNode = settings.get("amount");
-                int amount = (amtNode != null && !amtNode.isNull()) ? amtNode.asInt(1) : 1;
-
+                int amount = settings.get("amount").asInt(1);
                 int fireTicks = 0;
                 YamlValue fireNode = settings.get("fire");
-                if (fireNode != null && fireNode.asYamlMap().hasResult()) {
+                if (fireNode.asYamlMap().hasResult()) {
                     YamlMap fireMap = fireNode.asYamlMap().getOrThrow();
-                    YamlValue timeNode = fireMap.get("time");
-                    if (timeNode != null && timeNode.asYamlMap().hasResult()) {
-                        YamlMap timeMap = timeNode.asYamlMap().getOrThrow();
-
-                        YamlValue tTypeNode = timeMap.get("type");
-                        String timeType = (tTypeNode != null && !tTypeNode.isNull()) ? tTypeNode.asString("ticks") : "ticks";
-
-                        YamlValue tValNode = timeMap.get("value");
-                        int timeValue = (tValNode != null && !tValNode.isNull()) ? tValNode.asInt(0) : 0;
-
-                        fireTicks = timeType.equalsIgnoreCase("seconds") ? timeValue * 20 : timeValue;
-                    }
+                    String timeType = fireMap.get("type").asString("ticks");
+                    int timeValue = fireMap.get("value").asInt(0);
+                    fireTicks = timeType.equalsIgnoreCase("seconds") ? timeValue * 20 : timeValue;
                 }
                 resultList.add(new LightningEffect(targetSelector, fireTicks, amount));
             }
-
             case "particle" -> {
                 YamlValue settingsNode = map.get("settings");
-                if (settingsNode == null || !settingsNode.asYamlMap().hasResult()) {
-                    plugin.getDebugLogger().error("Ошибка в " + fileName + " (Эффект particle): Ожидалась секция 'settings', но она не найдена!");
-                    return null;
-                }
+                if (!settingsNode.asYamlMap().hasResult()) return null;
                 YamlMap settings = settingsNode.asYamlMap().getOrThrow();
-                YamlValue particleNode = settings.get("particle");
-                if (particleNode == null || particleNode.isNull() || particleNode == YamlValue.EMPTY) {
-                    plugin.getDebugLogger().error("Ошибка в " + fileName + " (Эффект particle): В 'settings' не указано имя партикла!");
-                    return null;
-                }
 
-                String particleName = particleNode.asString("FLAME").toUpperCase();
-
-                YamlValue cNode = settings.get("count");
-                int count = (cNode != null && !cNode.isNull()) ? cNode.asInt(10) : 10;
-
-                YamlValue oNode = settings.get("offset");
-                double offset = (oNode != null && !oNode.isNull()) ? oNode.asDouble(0.5) : 0.5;
+                String particleName = settings.get("particle").asString("FLAME").toUpperCase();
+                int count = settings.get("count").asInt(10);
+                double offset = settings.get("offset").asDouble(0.5);
 
                 try {
                     resultList.add(new ParticleEffect(targetSelector, Particle.valueOf(particleName), count, offset));
-                } catch (IllegalArgumentException e) {
-                    plugin.getDebugLogger().error("Ошибка в " + fileName + " (Эффект particle): Неизвестный партикл '" + particleName + "'!");
-                    return null;
-                }
+                } catch (IllegalArgumentException ignored) {}
             }
-
-            case "worldedit", "worldguard" -> {
-                plugin.getDebugLogger().info("Загрузка эффекта " + type + " (Файл: " + fileName + ")");
-            }
-
-            default -> {
-                plugin.getDebugLogger().error("Ошибка в " + fileName + ": Обнаружен неизвестный тип эффекта '" + type + "'!");
-                return null;
-            }
+            case "worldedit", "worldguard" -> {}
+            default -> { return null; }
         }
 
         YamlValue msgsNode = map.get("messages");
-        if (msgsNode != null && !msgsNode.isNull() && msgsNode != YamlValue.EMPTY) {
-            if (msgsNode.getRaw() instanceof List<?> msgsList) {
-                for (Object msgObj : msgsList) {
-                    var msgMapRes = YamlValue.wrap(msgObj).asYamlMap();
-                    if (!msgMapRes.hasResult()) continue;
-                    YamlMap msgMap = msgMapRes.getOrThrow();
+        if (msgsNode.getRaw() instanceof List<?> msgsList) {
+            for (Object msgObj : msgsList) {
+                var msgMapRes = YamlValue.wrap(msgObj).asYamlMap();
+                if (!msgMapRes.hasResult()) continue;
+                YamlMap msgMap = msgMapRes.getOrThrow();
 
-                    YamlValue mTypeNode = msgMap.get("type");
-                    String msgType = (mTypeNode != null && !mTypeNode.isNull()) ? mTypeNode.asString("").toLowerCase() : "";
-                    if (msgType.isEmpty()) continue;
-
-                    if (msgType.equals("chat") || msgType.equals("message")) {
+                String msgType = msgMap.get("type").asString("").toLowerCase();
+                switch (msgType) {
+                    case "chat", "message" -> {
                         YamlValue textListObj = msgMap.get("messages");
-                        if (textListObj != null && !textListObj.isNull() && textListObj.getRaw() instanceof List<?> tList) {
+                        if (textListObj.getRaw() instanceof List<?> tList) {
                             List<String> texts = new ArrayList<>();
                             for (Object t : tList) texts.add(String.valueOf(t));
                             resultList.add(new MessageEffect(targetSelector, texts));
-                        } else {
-                            plugin.getDebugLogger().error("Ошибка в " + fileName + " (Эффект message/chat): 'messages' должен быть списком!");
                         }
-                    } else if (msgType.equals("actionbar")) {
-                        YamlValue actionNode = msgMap.get("message");
-                        if (actionNode != null && !actionNode.isNull() && actionNode != YamlValue.EMPTY) {
-                            resultList.add(new ActionbarEffect(targetSelector, actionNode.asString("")));
-                        } else {
-                            plugin.getDebugLogger().error("Ошибка в " + fileName + " (Эффект actionbar): Отсутствует 'message'!");
-                        }
-                    } else if (msgType.equals("title")) {
-                        YamlValue tNode = msgMap.get("title");
-                        String title = (tNode != null && !tNode.isNull()) ? tNode.asString("") : "";
-
-                        YamlValue subNode = msgMap.get("subtitle");
-                        String subtitle = (subNode != null && !subNode.isNull()) ? subNode.asString("") : "";
-
-                        YamlValue timeNode = msgMap.get("time");
-                        String timeStr = (timeNode != null && !timeNode.isNull()) ? timeNode.asString("10;70;20") : "10;70;20";
-
-                        String[] times = timeStr.split(";");
+                    }
+                    case "actionbar" -> {
+                        String actionMsg = msgMap.get("message").asString("");
+                        if (!actionMsg.isEmpty()) resultList.add(new ActionbarEffect(targetSelector, actionMsg));
+                    }
+                    case "title" -> {
+                        String title = msgMap.get("title").asString("");
+                        String subtitle = msgMap.get("subtitle").asString("");
+                        String[] times = msgMap.get("time").asString("10;70;20").split(";");
                         if (times.length == 3) {
                             try {
                                 resultList.add(new TitleEffect(targetSelector, title, subtitle, Integer.parseInt(times[0]), Integer.parseInt(times[1]), Integer.parseInt(times[2])));
-                            } catch (NumberFormatException e) {
-                                plugin.getDebugLogger().error("Ошибка в " + fileName + " (Эффект title): Ошибка в формате времени!");
+                            } catch (NumberFormatException ignored) {
                             }
-                        } else {
-                            plugin.getDebugLogger().error("Ошибка в " + fileName + " (Эффект title): Формат времени должен быть 'int;int;int'!");
                         }
                     }
                 }
-            } else {
-                plugin.getDebugLogger().error("Ошибка в " + fileName + " (Эффект " + type + "): Секция 'messages' должна быть списком!");
             }
         }
 

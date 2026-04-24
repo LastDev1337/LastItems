@@ -1,7 +1,8 @@
-package ru.last.lastitems.effects;
+package ru.last.lastitems.item.effects;
 
 import org.bukkit.entity.Entity;
 import org.bukkit.util.Vector;
+import ru.last.lastitems.item.ItemEffect;
 import ru.last.lastitems.item.TriggerContext;
 import ru.last.lastitems.utils.TargetResolver;
 
@@ -35,6 +36,6 @@ public class KnockbackEffect implements ItemEffect {
             pushDirection.multiply(strength).setY(vertical);
             target.setVelocity(pushDirection);
         }
-        return false;
+        return true;
     }
 }

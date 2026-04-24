@@ -1,7 +1,8 @@
-package ru.last.lastitems.effects;
+package ru.last.lastitems.item.effects;
 
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.entity.Entity;
+import ru.last.lastitems.item.ItemEffect;
 import ru.last.lastitems.item.TriggerContext;
 import ru.last.lastitems.utils.PlaceholderUtil;
 import ru.last.lastitems.utils.TargetResolver;
@@ -22,14 +23,13 @@ public class MessageEffect implements ItemEffect {
     @Override
     public boolean execute(TriggerContext context) {
         if (messages == null || messages.isEmpty()) return false;
-
         Collection<? extends Entity> targets = TargetResolver.resolve(targetSelector, context);
         if (targets.isEmpty()) return false;
 
         for (Entity target : targets) {
             for (String msg : messages) {
                 String parsed = PlaceholderUtil.replace(msg, context, target);
-                target.sendMessage(mm.deserialize(parsed));
+                target.sendMessage(PlaceholderUtil.color(parsed));
             }
         }
         return true;

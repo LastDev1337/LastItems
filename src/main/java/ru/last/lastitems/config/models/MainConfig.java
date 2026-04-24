@@ -12,12 +12,12 @@ public class MainConfig {
     public MainConfig(YamlMap rootMap) {
         YamlValue debugNode = rootMap.get("debug");
 
-        if (debugNode != null && debugNode.asYamlMap().hasResult()) {
+        if (debugNode.asYamlMap().hasResult()) {
             YamlMap debugMap = debugNode.asYamlMap().getOrThrow();
-            this.debugEnable = debugMap.get("enable") != null ? debugMap.get("enable").asBool(true) : true;
+            this.debugEnable = debugMap.get("enable").asBool(true);
 
             YamlValue levelNode = debugMap.get("level");
-            if (levelNode != null && levelNode.asYamlMap().hasResult()) {
+            if (levelNode.asYamlMap().hasResult()) {
                 YamlMap levelMap = levelNode.asYamlMap().getOrThrow();
 
                 this.info = new LogLevelSettings(getSection(levelMap, "info"), "&a[Debug] &f");
@@ -38,7 +38,7 @@ public class MainConfig {
 
     private YamlMap getSection(YamlMap map, String key) {
         YamlValue node = map.get(key);
-        return (node != null && node.asYamlMap().hasResult()) ? node.asYamlMap().getOrThrow() : new YamlMap();
+        return node.asYamlMap().hasResult() ? node.asYamlMap().getOrThrow() : new YamlMap();
     }
 
     public boolean isDebugEnable() { return debugEnable; }

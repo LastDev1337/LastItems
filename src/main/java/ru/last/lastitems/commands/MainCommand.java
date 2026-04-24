@@ -6,8 +6,7 @@ import dev.by1337.cmd.CompiledCommand;
 import dev.by1337.cmd.SuggestionsList;
 import dev.by1337.cmd.CommandMsgError;
 
-import net.kyori.adventure.text.minimessage.MiniMessage;
-
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -22,6 +21,7 @@ import org.jspecify.annotations.NonNull;
 import ru.last.lastitems.LastItemsFree;
 import ru.last.lastitems.config.models.*;
 import ru.last.lastitems.item.CustomItem;
+import ru.last.lastitems.utils.PlaceholderUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +29,6 @@ import java.util.Objects;
 
 public class MainCommand implements CommandExecutor, TabCompleter {
     private final LastItemsFree plugin;
-    private final MiniMessage mm = MiniMessage.miniMessage();
     private final Command<CommandSender> rootCommand;
 
     public MainCommand(LastItemsFree plugin) {
@@ -38,11 +37,11 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     }
 
     private void sendMsg(CommandSender sender, String text) {
-        if (text != null && !text.isEmpty()) sender.sendMessage(mm.deserialize(text));
+        sender.sendMessage(PlaceholderUtil.color(text));
     }
 
     private void sendError(CommandSender sender, String text) {
-        sender.sendMessage("§c" + text);
+        sendMsg(sender, "<red>" + text + "</red>");
     }
 
     private Command<CommandSender> buildCommandTree() {
@@ -87,7 +86,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
                     boolean hideMsg = "true".equalsIgnoreCase((String) args.get("hideMSG"));
 
-                    ItemStack itemToGive = customItem.getBaseItem().clone();
+                    ItemStack itemToGive = customItem.createFor(target);
                     itemToGive.setAmount(amount);
                     target.getInventory().addItem(itemToGive);
 
@@ -128,7 +127,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     for (String id : plugin.getItemManager().getAllIds()) {
                         CustomItem ci = plugin.getItemManager().getById(id);
                         if (ci != null) {
-                            target.getInventory().addItem(ci.getBaseItem().clone());
+                            target.getInventory().addItem(ci.createFor(target));
                             count++;
                         }
                     }
@@ -152,7 +151,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                         if (item != null) {
                             String name = id;
                             if (item.getBaseItem().hasItemMeta() && item.getBaseItem().getItemMeta().hasDisplayName()) {
-                                name = mm.serialize(Objects.requireNonNull(item.getBaseItem().getItemMeta().displayName()));
+                                name = LegacyComponentSerializer.legacySection().serialize(Objects.requireNonNull(item.getBaseItem().getItemMeta().displayName()));
                             }
                             sendMsg(sender, msgList.getItem().replace("%id%", id).replace("%name%", name));
                         }

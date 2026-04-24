@@ -1,8 +1,9 @@
-package ru.last.lastitems.effects;
+package ru.last.lastitems.item.effects;
 
 import org.bukkit.Particle;
 import org.bukkit.entity.Entity;
 
+import ru.last.lastitems.item.ItemEffect;
 import ru.last.lastitems.item.TriggerContext;
 import ru.last.lastitems.utils.TargetResolver;
 
@@ -33,6 +34,6 @@ public class ParticleEffect implements ItemEffect {
                     count, offset, offset, offset, 0.01
             );
         }
-        return false;
+        return true;
     }
 }
