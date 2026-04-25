@@ -1,7 +1,6 @@
-package ru.last.lastitems.item.effects;
+package ru.last.lastitems.item.messages;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.title.Title;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -13,14 +12,13 @@ import ru.last.lastitems.utils.TargetResolver;
 import java.time.Duration;
 import java.util.Collection;
 
-public class TitleEffect implements ItemEffect {
+public class TitleMessage implements ItemEffect {
     private final String targetSelector;
     private final String titleRaw;
     private final String subtitleRaw;
     private final int fadeIn, stay, fadeOut;
-    private final MiniMessage mm = MiniMessage.miniMessage();
 
-    public TitleEffect(String targetSelector, String titleRaw, String subtitleRaw, int fadeIn, int stay, int fadeOut) {
+    public TitleMessage(String targetSelector, String titleRaw, String subtitleRaw, int fadeIn, int stay, int fadeOut) {
         this.targetSelector = targetSelector;
         this.titleRaw = titleRaw;
         this.subtitleRaw = subtitleRaw;
@@ -44,7 +42,6 @@ public class TitleEffect implements ItemEffect {
             if (target instanceof Player p) {
                 Component mainTitle = PlaceholderUtil.color(PlaceholderUtil.replace(titleRaw, context, p));
                 Component subTitle = PlaceholderUtil.color(PlaceholderUtil.replace(subtitleRaw, context, p));
-
                 p.showTitle(Title.title(mainTitle, subTitle, times));
             }
         }

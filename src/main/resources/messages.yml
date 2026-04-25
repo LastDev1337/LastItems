@@ -1,5 +1,5 @@
 general:
-  usage: '<gold>MyphicItems</gold> <gray>∫</gray> <white>Использование: /%command% %args%</white>'
+  usage: '<gold>MyphicItems</gold> <gray>∫</gray> <white>Использование: /%command% %args%'
   no_permission: '<red>У вас нет прав для выполнения этой команды!</red>'
   console_player_required: '<red>Консоль должна указывать ник игрока!</red>'
   reload:
@@ -8,7 +8,7 @@ general:
 
 give:
   success: '<green>Получено %value% шт. %name%</green>'
-  success_other: '<green>Выдано %value% шт. %name% игроку %player%</green>'
+  success_other: '<green>Выдано %value% шт. %name% игроку %player_name%</green>'
   error:
     player-not-found: '<red>Игрок %player% не найден</red>'
     value-not-number: '<red>Введите число!</red>'
@@ -17,7 +17,7 @@ give:
 
 take:
   success: '<green>У вас забрали %value% шт. %name%</green>'
-  success_other: '<green>Забрано %value% шт. %name% у игрока %player%</green>'
+  success_other: '<green>Забрано %value% шт. %name% у игрока %player_name%</green>'
   error:
     player-not-found: '<red>Игрок %player% не найден</red>'
     value-not-number: '<red>Введите число!</red>'
@@ -26,5 +26,5 @@ take:
 
 list:
   no_items: '<red>Нет загруженных кастомных предметов!</red>'
-  title: '<gold>Предметы:</gold>'
-  item: '<gray>- %id%</gray>'
+  title: '<gold>Предметы (%count%):</gold>'
+  item: '<gray>- %id%:</gray> %name%'

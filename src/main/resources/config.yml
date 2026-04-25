@@ -12,13 +12,6 @@ debug:
       enable: true
       prefix: '[Debug] '
 
-# TODO
 limits:
   give: 64
   take: 64
-  giveall: 64
-
-# - detail: показывает детально время (1 минута 23 секунды)
-# - simple: показывает время как ваши часы на телефоне (01:23)
-# - default: показывает время по умолчанию (1 мин. 23 сек.)
-time: detail

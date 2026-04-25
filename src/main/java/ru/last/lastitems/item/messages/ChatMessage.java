@@ -1,34 +1,32 @@
-package ru.last.lastitems.item.effects;
+package ru.last.lastitems.item.messages;
 
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.Player;
-
 import ru.last.lastitems.item.ItemEffect;
 import ru.last.lastitems.item.TriggerContext;
 import ru.last.lastitems.utils.PlaceholderUtil;
 import ru.last.lastitems.utils.TargetResolver;
 
 import java.util.Collection;
+import java.util.List;
 
-public class ActionbarEffect implements ItemEffect {
+public class ChatMessage implements ItemEffect {
     private final String targetSelector;
-    private final String message;
+    private final List<String> messages;
 
-    public ActionbarEffect(String targetSelector, String message) {
+    public ChatMessage(String targetSelector, List<String> messages) {
         this.targetSelector = targetSelector;
-        this.message = message;
+        this.messages = messages;
     }
 
     @Override
     public boolean execute(TriggerContext context) {
-        if (message == null || message.isEmpty()) return false;
+        if (messages == null || messages.isEmpty()) return false;
         Collection<? extends Entity> targets = TargetResolver.resolve(targetSelector, context);
         if (targets.isEmpty()) return false;
 
         for (Entity target : targets) {
-            if (target instanceof Player p) {
-                String parsed = PlaceholderUtil.replace(message, context, p);
-                p.sendActionBar(PlaceholderUtil.color(parsed));
+            for (String msg : messages) {
+                target.sendMessage(PlaceholderUtil.color(PlaceholderUtil.replace(msg, context, target)));
             }
         }
         return true;

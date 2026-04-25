@@ -8,6 +8,8 @@ public class MainConfig {
     private final LogLevelSettings info;
     private final LogLevelSettings warn;
     private final LogLevelSettings error;
+    private final int limitGive;
+    private final int limitTake;
 
     public MainConfig(YamlMap rootMap) {
         YamlValue debugNode = rootMap.get("debug");
@@ -34,6 +36,16 @@ public class MainConfig {
             this.warn = new LogLevelSettings(new YamlMap(), "&e[Warning] &e");
             this.error = new LogLevelSettings(new YamlMap(), "&c[Error] &c");
         }
+
+        YamlValue limitsNode = rootMap.get("limits");
+        if (limitsNode.asYamlMap().hasResult()) {
+            YamlMap limitsMap = limitsNode.asYamlMap().getOrThrow();
+            this.limitGive = limitsMap.get("give").asInt(64);
+            this.limitTake = limitsMap.get("take").asInt(64);
+        } else {
+            this.limitGive = 64;
+            this.limitTake = 64;
+        }
     }
 
     private YamlMap getSection(YamlMap map, String key) {
@@ -45,4 +57,6 @@ public class MainConfig {
     public LogLevelSettings getInfo() { return info; }
     public LogLevelSettings getWarn() { return warn; }
     public LogLevelSettings getError() { return error; }
+    public int getLimitGive() { return limitGive; }
+    public int getLimitTake() { return limitTake; }
 }

@@ -6,19 +6,20 @@ import dev.by1337.yaml.YamlMap;
 import dev.by1337.yaml.YamlValue;
 import dev.by1337.yaml.codec.DataResult;
 
+import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
-
+import org.bukkit.potion.PotionEffectType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import ru.last.lastitems.LastItemsFree;
 import ru.last.lastitems.item.effects.*;
-import ru.last.lastitems.item.actions.CooldownAction;
-import ru.last.lastitems.item.actions.NoTargetAction;
+import ru.last.lastitems.item.actions.*;
+import ru.last.lastitems.item.messages.MessageParser;
 
 import java.io.File;
 import java.io.IOException;
@@ -133,8 +134,6 @@ public class ItemManager {
                     boolean cdEnable = false;
                     long cdMillis = 0;
                     String cdFormat = "default";
-                    List<ItemEffect> cdEffects = new ArrayList<>();
-
                     if (cdNode.asYamlMap().hasResult()) {
                         YamlMap cdMap = cdNode.asYamlMap().getOrThrow();
                         cdEnable = cdMap.get("enable").asBool(false);
@@ -147,25 +146,38 @@ public class ItemManager {
                                 cdFormat = timeMap.get("format").asString("default");
                                 cdMillis = type.equalsIgnoreCase("seconds") ? val * 1000L : val * 50L;
                             }
-                            cdEffects = parseMessageGroup(cdNode);
                         }
                     }
-                    CooldownAction cooldownAction = new CooldownAction(cdEnable, cdMillis, cdFormat, cdEffects);
+                    CooldownAction cooldownAction = new CooldownAction(cdEnable, cdMillis, cdFormat, MessageParser.parse(cdNode, "player"));
 
                     YamlValue noTargetsNode = actionMap.get("no_targets");
-                    boolean ntEnable = false;
-                    List<ItemEffect> ntEffects = new ArrayList<>();
-                    if (noTargetsNode.asYamlMap().hasResult()) {
-                        YamlMap ntMap = noTargetsNode.asYamlMap().getOrThrow();
-                        ntEnable = ntMap.get("enable").asBool(false);
-                        if (ntEnable) {
-                            ntEffects = parseMessageGroup(noTargetsNode);
+                    boolean ntEnable = noTargetsNode.asYamlMap().hasResult() && noTargetsNode.asYamlMap().getOrThrow().get("enable").asBool(false);
+                    NoTargetAction noTargetAction = new NoTargetAction(ntEnable, MessageParser.parse(noTargetsNode, "player"));
+
+                    YamlValue clearNode = actionMap.get("clear");
+                    boolean clEnable = false;
+                    String clSlot = "main_hand";
+                    if (clearNode.asYamlMap().hasResult()) {
+                        YamlMap clMap = clearNode.asYamlMap().getOrThrow();
+                        clEnable = clMap.get("enable").asBool(false);
+                        if (clMap.get("settings").asYamlMap().hasResult()) {
+                            clSlot = clMap.get("settings").asYamlMap().getOrThrow().get("slot").asString("main_hand");
                         }
                     }
-                    NoTargetAction noTargetAction = new NoTargetAction(ntEnable, ntEffects);
+                    ClearAction clearAction = new ClearAction(clEnable, clSlot, MessageParser.parse(clearNode, "player"));
 
-                    if (!effects.isEmpty() || ntEnable || cdEnable) {
-                        actionsMap.computeIfAbsent(trigger, k -> new ArrayList<>()).add(new ActionNode(value, chance, effects, noTargetAction, cooldownAction));
+                    YamlValue vanillaNode = actionMap.get("vanilla");
+                    boolean vEnable = false;
+                    String vEvent = "cancel";
+                    if (vanillaNode.asYamlMap().hasResult()) {
+                        YamlMap vMap = vanillaNode.asYamlMap().getOrThrow();
+                        vEnable = vMap.get("enable").asBool(false);
+                        vEvent = vMap.get("event").asString("cancel");
+                    }
+                    VanillaAction vanillaAction = new VanillaAction(vEnable, vEvent, MessageParser.parse(vanillaNode, "player"));
+
+                    if (!effects.isEmpty() || ntEnable || cdEnable || clEnable || vEnable) {
+                        actionsMap.computeIfAbsent(trigger, k -> new ArrayList<>()).add(new ActionNode(value, chance, effects, noTargetAction, cooldownAction, clearAction, vanillaAction));
                     }
                 }
             }
@@ -174,50 +186,6 @@ public class ItemManager {
         } catch (Exception e) {
             plugin.getDebugLogger().error("Критическая ошибка при загрузке предмета " + fileName, e);
         }
-    }
-
-    private List<ItemEffect> parseMessageGroup(YamlValue node) {
-        List<ItemEffect> result = new ArrayList<>();
-        if (!node.asYamlMap().hasResult()) return result;
-
-        YamlMap map = node.asYamlMap().getOrThrow();
-        YamlValue msgsNode = map.get("messages");
-        if (msgsNode.getRaw() instanceof List<?> list) {
-            for (Object obj : list) {
-                var mapRes = YamlValue.wrap(obj).asYamlMap();
-                if (!mapRes.hasResult()) continue;
-                YamlMap msgMap = mapRes.getOrThrow();
-
-                String msgType = msgMap.get("type").asString("").toLowerCase();
-
-                switch (msgType) {
-                    case "chat", "message" -> {
-                        YamlValue textListObj = msgMap.get("messages");
-                        if (textListObj.getRaw() instanceof List<?> tList) {
-                            List<String> texts = new ArrayList<>();
-                            for (Object t : tList) texts.add(String.valueOf(t));
-                            result.add(new MessageEffect("player", texts));
-                        }
-                    }
-                    case "actionbar" -> {
-                        String actionMsg = msgMap.get("message").asString("");
-                        if (!actionMsg.isEmpty()) result.add(new ActionbarEffect("player", actionMsg));
-                    }
-                    case "title" -> {
-                        String title = msgMap.get("title").asString("");
-                        String subtitle = msgMap.get("subtitle").asString("");
-                        String[] times = msgMap.get("time").asString("10;70;20").split(";");
-                        if (times.length == 3) {
-                            try {
-                                result.add(new TitleEffect("player", title, subtitle, Integer.parseInt(times[0]), Integer.parseInt(times[1]), Integer.parseInt(times[2])));
-                            } catch (NumberFormatException ignored) {
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return result;
     }
 
     @Nullable
@@ -244,50 +212,19 @@ public class ItemManager {
                 YamlValue cmdsNode = map.get("commands");
                 if (!cmdsNode.asYamlMap().hasResult()) return null;
                 YamlMap cmdsMap = cmdsNode.asYamlMap().getOrThrow();
-
                 String selectionType = cmdsMap.get("type").asString("default");
                 List<String> randomList = new ArrayList<>();
                 YamlValue randomNode = cmdsMap.get("random");
                 if (randomNode.getRaw() instanceof List<?> rList) {
                     for (Object c : rList) randomList.add(String.valueOf(c));
                 }
-
                 String defaultCmd = cmdsMap.get("default").asString("");
                 resultList.add(new ConsoleCommandEffect(targetSelector, selectionType, randomList, defaultCmd));
-            }
-            case "message", "chat" -> {
-                YamlValue msgsNode = map.get("messages");
-                if (msgsNode.getRaw() instanceof List<?> mList) {
-                    List<String> messages = new ArrayList<>();
-                    for (Object m : mList) messages.add(String.valueOf(m));
-                    resultList.add(new MessageEffect(targetSelector, messages));
-                } else return null;
-            }
-            case "actionbar" -> {
-                String msg = map.get("message").asString("");
-                if (msg.isEmpty()) return null;
-                resultList.add(new ActionbarEffect(targetSelector, msg));
-            }
-            case "title" -> {
-                YamlValue settingsNode = map.get("settings");
-                if (!settingsNode.asYamlMap().hasResult()) return null;
-                YamlMap settings = settingsNode.asYamlMap().getOrThrow();
-
-                String title = settings.get("title").asString("");
-                String subtitle = settings.get("subtitle").asString("");
-                String[] times = settings.get("time").asString("10;70;20").split(";");
-
-                if (times.length == 3) {
-                    try {
-                        resultList.add(new TitleEffect(targetSelector, title, subtitle, Integer.parseInt(times[0]), Integer.parseInt(times[1]), Integer.parseInt(times[2])));
-                    } catch (NumberFormatException ignored) {}
-                }
             }
             case "knockback" -> {
                 YamlValue settingsNode = map.get("settings");
                 if (!settingsNode.asYamlMap().hasResult()) return null;
                 YamlMap settings = settingsNode.asYamlMap().getOrThrow();
-
                 double strength = settings.get("strength").asDouble(1.0);
                 double vertical = settings.get("vertical").asDouble(0.5);
                 resultList.add(new KnockbackEffect(targetSelector, strength, vertical));
@@ -296,7 +233,6 @@ public class ItemManager {
                 YamlValue settingsNode = map.get("settings");
                 if (!settingsNode.asYamlMap().hasResult()) return null;
                 YamlMap settings = settingsNode.asYamlMap().getOrThrow();
-
                 int amount = settings.get("amount").asInt(1);
                 int fireTicks = 0;
                 YamlValue fireNode = settings.get("fire");
@@ -312,56 +248,129 @@ public class ItemManager {
                 YamlValue settingsNode = map.get("settings");
                 if (!settingsNode.asYamlMap().hasResult()) return null;
                 YamlMap settings = settingsNode.asYamlMap().getOrThrow();
-
                 String particleName = settings.get("particle").asString("FLAME").toUpperCase();
                 int count = settings.get("count").asInt(10);
                 double offset = settings.get("offset").asDouble(0.5);
-
                 try {
                     resultList.add(new ParticleEffect(targetSelector, Particle.valueOf(particleName), count, offset));
                 } catch (IllegalArgumentException ignored) {}
             }
-            case "worldedit", "worldguard" -> {}
-            default -> { return null; }
-        }
+            case "damage" -> {
+                YamlValue settingsNode = map.get("settings");
+                if (!settingsNode.asYamlMap().hasResult()) return null;
+                YamlMap settings = settingsNode.asYamlMap().getOrThrow();
+                double amount = settings.get("amount").asDouble(1.0);
+                String damageType = settings.get("type").asString("");
+                resultList.add(new DamageEffect(targetSelector, amount, damageType));
+            }
+            case "potion" -> {
+                YamlValue settingsNode = map.get("settings");
+                if (!(settingsNode.getRaw() instanceof List<?> sList)) return null;
 
-        YamlValue msgsNode = map.get("messages");
-        if (msgsNode.getRaw() instanceof List<?> msgsList) {
-            for (Object msgObj : msgsList) {
-                var msgMapRes = YamlValue.wrap(msgObj).asYamlMap();
-                if (!msgMapRes.hasResult()) continue;
-                YamlMap msgMap = msgMapRes.getOrThrow();
+                List<PotionEffect.GiveAction> giveList = new ArrayList<>();
+                PotionEffect.ClearAction clearAction = null;
 
-                String msgType = msgMap.get("type").asString("").toLowerCase();
-                switch (msgType) {
-                    case "chat", "message" -> {
-                        YamlValue textListObj = msgMap.get("messages");
-                        if (textListObj.getRaw() instanceof List<?> tList) {
-                            List<String> texts = new ArrayList<>();
-                            for (Object t : tList) texts.add(String.valueOf(t));
-                            resultList.add(new MessageEffect(targetSelector, texts));
-                        }
-                    }
-                    case "actionbar" -> {
-                        String actionMsg = msgMap.get("message").asString("");
-                        if (!actionMsg.isEmpty()) resultList.add(new ActionbarEffect(targetSelector, actionMsg));
-                    }
-                    case "title" -> {
-                        String title = msgMap.get("title").asString("");
-                        String subtitle = msgMap.get("subtitle").asString("");
-                        String[] times = msgMap.get("time").asString("10;70;20").split(";");
-                        if (times.length == 3) {
-                            try {
-                                resultList.add(new TitleEffect(targetSelector, title, subtitle, Integer.parseInt(times[0]), Integer.parseInt(times[1]), Integer.parseInt(times[2])));
-                            } catch (NumberFormatException ignored) {
+                for (Object obj : sList) {
+                    var sMapRes = YamlValue.wrap(obj).asYamlMap();
+                    if (!sMapRes.hasResult()) continue;
+                    YamlMap sMap = sMapRes.getOrThrow();
+
+                    String sType = sMap.get("type").asString("give");
+                    if (sType.equalsIgnoreCase("give")) {
+                        YamlValue giveNode = sMap.get("list");
+                        if (giveNode.getRaw() instanceof List<?> gList) {
+                            for (Object gObj : gList) {
+                                var gMapRes = YamlValue.wrap(gObj).asYamlMap();
+                                if (!gMapRes.hasResult()) continue;
+                                YamlMap gMap = gMapRes.getOrThrow();
+
+                                String potName = gMap.get("potion").asString("");
+                                PotionEffectType potType = org.bukkit.Registry.EFFECT.get(NamespacedKey.minecraft(potName.toLowerCase()));
+                                if (potType == null) continue;
+
+                                YamlValue timeNode = gMap.get("time");
+                                int ticks = 20;
+                                if (timeNode.asYamlMap().hasResult()) {
+                                    YamlMap timeMap = timeNode.asYamlMap().getOrThrow();
+                                    String tType = timeMap.get("type").asString("ticks");
+                                    int val = timeMap.get("value").asInt(20);
+                                    ticks = tType.equalsIgnoreCase("seconds") ? val * 20 : val;
+                                }
+
+                                int level = gMap.get("level").asInt(0);
+                                boolean fall = gMap.get("fall").asBool(false);
+                                giveList.add(new PotionEffect.GiveAction(potType, ticks, level, fall));
                             }
                         }
+                    } else if (sType.equalsIgnoreCase("clear")) {
+                        String trigger = sMap.get("trigger").asString("all");
+                        boolean all = trigger.equalsIgnoreCase("all");
+                        List<PotionEffectType> specific = new ArrayList<>();
+                        if (!all) {
+                            YamlValue clNode = sMap.get("list");
+                            if (clNode.getRaw() instanceof List<?> cList) {
+                                for (Object cObj : cList) {
+                                    String potName = String.valueOf(cObj).toLowerCase().replace("minecraft:", "");
+                                    PotionEffectType potType = org.bukkit.Registry.EFFECT.get(NamespacedKey.minecraft(potName));
+                                    if (potType != null) specific.add(potType);
+                                }
+                            }
+                        }
+                        clearAction = new PotionEffect.ClearAction(all, specific);
                     }
                 }
+                resultList.add(new PotionEffect(targetSelector, giveList, clearAction));
+            }
+            case "disable_items" -> {
+                YamlValue settingsNode = map.get("settings");
+                if (!(settingsNode.getRaw() instanceof List<?> sList)) return null;
+
+                List<DisableItemsEffect.DisableSetting> disables = new ArrayList<>();
+                for (Object obj : sList) {
+                    var sMapRes = YamlValue.wrap(obj).asYamlMap();
+                    if (!sMapRes.hasResult()) continue;
+                    YamlMap sMap = sMapRes.getOrThrow();
+
+                    String matStr = sMap.get("material").asString("").toUpperCase().replace("MINECRAFT:", "");
+                    Material mat = Material.getMaterial(matStr);
+
+                    YamlValue timeNode = sMap.get("time");
+                    int ticks = 20;
+                    String format = "default";
+                    if (timeNode.asYamlMap().hasResult()) {
+                        YamlMap timeMap = timeNode.asYamlMap().getOrThrow();
+                        String tType = timeMap.get("type").asString("ticks");
+                        int val = timeMap.get("value").asInt(20);
+                        ticks = tType.equalsIgnoreCase("seconds") ? val * 20 : val;
+                        format = timeMap.get("format").asString("default");
+                    }
+
+                    boolean vanilla = sMap.get("vanilla").asBool(true);
+                    List<ItemEffect> msgs = ru.last.lastitems.item.messages.MessageParser.parse(YamlValue.wrap(obj), targetSelector);
+                    disables.add(new DisableItemsEffect.DisableSetting(mat, ticks, format, vanilla, msgs));
+                }
+                resultList.add(new DisableItemsEffect(targetSelector, disables));
+            }
+            case "freeze" -> {
+                YamlValue settingsNode = map.get("settings");
+                if (!settingsNode.asYamlMap().hasResult()) return null;
+                YamlMap settings = settingsNode.asYamlMap().getOrThrow();
+
+                YamlValue timeNode = settings.get("time");
+                int ticks = 20;
+                if (timeNode.asYamlMap().hasResult()) {
+                    YamlMap timeMap = timeNode.asYamlMap().getOrThrow();
+                    String tType = timeMap.get("type").asString("ticks");
+                    int val = timeMap.get("value").asInt(20);
+                    ticks = tType.equalsIgnoreCase("seconds") ? val * 20 : val;
+                }
+                resultList.add(new FreezeEffect(targetSelector, ticks));
             }
         }
 
-        return resultList;
+        resultList.addAll(MessageParser.parse(node, targetSelector));
+
+        return resultList.isEmpty() ? null : resultList;
     }
 
     @Nullable

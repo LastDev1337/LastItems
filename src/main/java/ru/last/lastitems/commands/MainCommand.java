@@ -6,7 +6,6 @@ import dev.by1337.cmd.CompiledCommand;
 import dev.by1337.cmd.SuggestionsList;
 import dev.by1337.cmd.CommandMsgError;
 
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -16,16 +15,16 @@ import org.bukkit.inventory.ItemStack;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
 import org.jspecify.annotations.NonNull;
+
 import ru.last.lastitems.LastItemsFree;
 import ru.last.lastitems.config.models.*;
 import ru.last.lastitems.item.CustomItem;
+import ru.last.lastitems.item.TriggerContext;
 import ru.last.lastitems.utils.PlaceholderUtil;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 public class MainCommand implements CommandExecutor, TabCompleter {
     private final LastItemsFree plugin;
@@ -36,18 +35,21 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         this.rootCommand = buildCommandTree();
     }
 
-    private void sendMsg(CommandSender sender, String text) {
+    private void sendMsg(CommandSender sender, @Nullable Player target, String text) {
+        if (target != null) {
+            text = PlaceholderUtil.replace(text, new TriggerContext(target, null, null, null, null), target);
+        }
         sender.sendMessage(PlaceholderUtil.color(text));
     }
 
     private void sendError(CommandSender sender, String text) {
-        sendMsg(sender, "<red>" + text + "</red>");
+        sendMsg(sender, null, "<red>" + text + "</red>");
     }
 
     private Command<CommandSender> buildCommandTree() {
         Command<CommandSender> root = new Command<>("lastitems");
 
-        root.executor((sender, args) -> sendMsg(sender, plugin.getConfigManager().getMessages().getGeneral().getUsage()
+        root.executor((sender, args) -> sendMsg(sender, null, plugin.getConfigManager().getMessages().getGeneral().getUsage()
                 .replace("%command%", "lastitems")
                 .replace("%args%", "give|take|giveall|list|reload")));
 
@@ -64,13 +66,13 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     String itemId = (String) args.get("item");
 
                     if (itemId == null) {
-                        sendMsg(sender, "<red>Укажите предмет!</red>");
+                        sendError(sender, "Укажите предмет!");
                         return;
                     }
 
                     CustomItem customItem = plugin.getItemManager().getById(itemId);
                     if (customItem == null) {
-                        sendMsg(sender, msgGive.getError().getItemNotFound().replace("%id%", itemId));
+                        sendMsg(sender, null, msgGive.getError().getItemNotFound().replace("%id%", itemId));
                         return;
                     }
 
@@ -78,7 +80,13 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     String amountStr = (String) args.get("amount");
                     if (amountStr != null) {
                         try { amount = Integer.parseInt(amountStr); }
-                        catch (NumberFormatException e) { sendMsg(sender, msgGive.getError().getValueNotNumber()); return; }
+                        catch (NumberFormatException e) { sendMsg(sender, null, msgGive.getError().getValueNotNumber()); return; }
+                    }
+
+                    int limit = plugin.getConfigManager().getMainConfig().getLimitGive();
+                    if (amount > limit) {
+                        sendMsg(sender, null, msgGive.getError().getBigValue().replace("%max-value%", String.valueOf(limit)));
+                        return;
                     }
 
                     Player target = getTarget(sender, (String) args.get("player"));
@@ -90,21 +98,32 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     itemToGive.setAmount(amount);
                     target.getInventory().addItem(itemToGive);
 
-                    if (!hideMsg) sendMsg(sender, msgGive.getSuccess().replace("%value%", String.valueOf(amount)).replace("%name%", itemId));
+                    if (!hideMsg) {
+                        String msg = sender.equals(target) ? msgGive.getSuccess() : msgGive.getSuccessOther();
+                        sendMsg(sender, target, msg.replace("%value%", String.valueOf(amount)).replace("%name%", itemId));
+                    }
                 });
 
         Command<CommandSender> take = new Command<>("take");
         take.requires(sender -> sender.hasPermission("lastitems.take"))
                 .argument(itemArg).argument(amountArg).argument(playerArg).argument(hideMsgArg)
                 .executor((sender, args) -> {
+                    MessagesConfig.Take msgTake = plugin.getConfigManager().getMessages().getTake();
                     String itemId = (String) args.get("item");
-                    if (itemId == null) { sendMsg(sender, "<red>Укажите предмет!</red>"); return; }
+
+                    if (itemId == null) { sendError(sender, "Укажите предмет!"); return; }
 
                     int amount = 1;
                     String amountStr = (String) args.get("amount");
                     if (amountStr != null) {
                         try { amount = Integer.parseInt(amountStr); }
-                        catch (NumberFormatException e) { sendMsg(sender, "<red>Введите число!</red>"); return; }
+                        catch (NumberFormatException e) { sendMsg(sender, null, msgTake.getError().getValueNotNumber()); return; }
+                    }
+
+                    int limit = plugin.getConfigManager().getMainConfig().getLimitTake();
+                    if (amount > limit) {
+                        sendMsg(sender, null, msgTake.getError().getBigValue().replace("%max-value%", String.valueOf(limit)));
+                        return;
                     }
 
                     Player target = getTarget(sender, (String) args.get("player"));
@@ -113,7 +132,10 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     boolean hideMsg = "true".equalsIgnoreCase((String) args.get("hideMSG"));
                     int removed = removeItems(target, itemId, amount);
 
-                    if (!hideMsg) sendMsg(sender, "<green>Успешно удалено " + removed + " предметов " + itemId + " у " + target.getName() + ".</green>");
+                    if (!hideMsg) {
+                        String msg = sender.equals(target) ? msgTake.getSuccess() : msgTake.getSuccessOther();
+                        sendMsg(sender, target, msg.replace("%value%", String.valueOf(removed)).replace("%name%", itemId));
+                    }
                 });
 
         Command<CommandSender> giveall = new Command<>("giveall");
@@ -131,7 +153,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                             count++;
                         }
                     }
-                    sendMsg(sender, "<green>Выдано " + count + " различных предметов игроку " + target.getName() + "!</green>");
+                    sendMsg(sender, target, "<green>Выдано " + count + " различных предметов игроку %player_name%!</green>");
                 });
 
         Command<CommandSender> list = new Command<>("list");
@@ -141,19 +163,19 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                     var ids = plugin.getItemManager().getAllIds();
 
                     if (ids.isEmpty()) {
-                        sendMsg(sender, msgList.getNoItems());
+                        sendMsg(sender, null, msgList.getNoItems());
                         return;
                     }
 
-                    sendMsg(sender, msgList.getTitle().replace("%count%", String.valueOf(ids.size())));
+                    sendMsg(sender, null, msgList.getTitle().replace("%count%", String.valueOf(ids.size())));
                     for (String id : ids) {
                         CustomItem item = plugin.getItemManager().getById(id);
                         if (item != null) {
                             String name = id;
                             if (item.getBaseItem().hasItemMeta() && item.getBaseItem().getItemMeta().hasDisplayName()) {
-                                name = LegacyComponentSerializer.legacySection().serialize(Objects.requireNonNull(item.getBaseItem().getItemMeta().displayName()));
+                                name = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(item.getBaseItem().getItemMeta().displayName());
                             }
-                            sendMsg(sender, msgList.getItem().replace("%id%", id).replace("%name%", name));
+                            sendMsg(sender, null, msgList.getItem().replace("%id%", id).replace("%name%", name));
                         }
                     }
                 });
@@ -208,9 +230,9 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             plugin.getConfigManager().loadAll();
             plugin.getItemManager().loadItems();
             long time = System.currentTimeMillis() - start;
-            sendMsg(sender, plugin.getConfigManager().getMessages().getGeneral().getReloadSuccess().replace("%time%", String.valueOf(time)));
+            sendMsg(sender, null, plugin.getConfigManager().getMessages().getGeneral().getReloadSuccess().replace("%time%", String.valueOf(time)));
         } catch (Exception e) {
-            sendMsg(sender, plugin.getConfigManager().getMessages().getGeneral().getReloadError());
+            sendMsg(sender, null, plugin.getConfigManager().getMessages().getGeneral().getReloadError());
             plugin.getDebugLogger().error("Ошибка при перезагрузке", e);
         }
     }
@@ -218,12 +240,12 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     private Player getTarget(CommandSender sender, String playerName) {
         if (playerName != null) {
             Player target = Bukkit.getPlayer(playerName);
-            if (target == null) sendMsg(sender, plugin.getConfigManager().getMessages().getGive().getError().getPlayerNotFound().replace("%player%", playerName));
+            if (target == null) sendMsg(sender, null, plugin.getConfigManager().getMessages().getGive().getError().getPlayerNotFound().replace("%player%", playerName));
             return target;
         } else if (sender instanceof Player p) {
             return p;
         } else {
-            sendError(sender, "Консоль должна указывать ник игрока!");
+            sendError(sender, plugin.getConfigManager().getMessages().getGeneral().getConsolePlayerRequired());
             return null;
         }
     }

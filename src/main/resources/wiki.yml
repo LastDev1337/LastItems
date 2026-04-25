@@ -46,36 +46,28 @@ actions:
   # on_projectile_throw
   #
   # TODO:
-  # on_kill_entity (type section)
-  # on_kill_player (type section)
-  # on_swapping (type section)
-  # on_walking
-  # on_swimming
+  # on_kill_entity
+  # on_kill_player
+  # on_swapping
   - trigger: string
-    type:
-      # https://jd.papermc.io/paper/org/bukkit/entity/EntityType.html
-      entity: string # only on_kill_<entity/player>
-      swap: string # only on_swapping
-    vanilla: # TODO
-      cancel_events:
-        - cooldown
-        - on_right_click
-        - on_left_click
-        - on_hit
-        - on_projectile_impact
-        - on_projectile_throw
-    clear: # TODO
-      events:
-        - type: on_right_click # убирается если игрок нажимает ПКМ с предметом внутри
-          slot: string # off_hand или main_hand (если ничего не будет, то будет ставиться main_hand)
-        - type: on_left_click
-          slot: string
-        - type: on_hit
-          slot: string
-        - type: on_projectile_impact
-          slot: string
-        - type: on_projectile_throw
-          slot: string
+    type: # TODO
+      entity: string # only on_kill_<entity/player> (https://jd.papermc.io/paper/org/bukkit/entity/EntityType.html)
+      swap: string # only on_swapping (F, 0,1,2,3,4,5,6,7,8 (hotbar's), main_hand and off_hand
+    vanilla:
+      enable: boolean
+      event: cancel
+      messages:
+        - type: chat
+          messages:
+            - '<>'
+    clear:
+      enable: boolean
+      settings:
+        slot: string # off_hand или main_hand (если ничего не будет, то будет ставиться main_hand)
+      messages:
+        - type: chat
+          messages:
+            - '<>'
     chance: long
     value: long
 
@@ -173,8 +165,8 @@ actions:
             messages:
               - '<>'
 
-      - type: damage # TODO
-        trigger: player
+      - type: damage
+        target: player
         settings:
           amount: long
           type: string # https://jd.papermc.io/paper/org/bukkit/damage/DamageType.html
@@ -184,8 +176,8 @@ actions:
             messages:
               - '<>'
 
-      - type: potion # TODO
-        trigger: player
+      - type: potion
+        target: player
         settings:
           - type: give
             list:
@@ -198,22 +190,25 @@ actions:
           - type: clear
             # all - все эффекты
             # specific/other - только из списка
-            trigger: all # or specific/other
+            trigger: all
             list:
               - 'slowness' # or minecraft:slowness
 
-      - type: disable_items # TODO
+      - type: disable_items
         target: player
         settings:
-          - material: ender_pearl # or custom:<>, minecraft:<>
-            time: int
+          - material: ender_pearl # or minecraft:ender_pearl
+            time:
+              format: string
+              type: ticks # or seconds
+              value: int
             vanilla: boolean
             messages:
               - type: chat
                 messages:
                   - '<>'
 
-      - type: freeze # TODO
+      - type: freeze
         target: player
         settings:
           time:

@@ -1,35 +1,32 @@
-package ru.last.lastitems.item.effects;
+package ru.last.lastitems.item.messages;
 
-import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import ru.last.lastitems.item.ItemEffect;
 import ru.last.lastitems.item.TriggerContext;
 import ru.last.lastitems.utils.PlaceholderUtil;
 import ru.last.lastitems.utils.TargetResolver;
 
 import java.util.Collection;
-import java.util.List;
 
-public class MessageEffect implements ItemEffect {
+public class ActionbarMessage implements ItemEffect {
     private final String targetSelector;
-    private final List<String> messages;
-    private final MiniMessage mm = MiniMessage.miniMessage();
+    private final String message;
 
-    public MessageEffect(String targetSelector, List<String> messages) {
+    public ActionbarMessage(String targetSelector, String message) {
         this.targetSelector = targetSelector;
-        this.messages = messages;
+        this.message = message;
     }
 
     @Override
     public boolean execute(TriggerContext context) {
-        if (messages == null || messages.isEmpty()) return false;
+        if (message == null || message.isEmpty()) return false;
         Collection<? extends Entity> targets = TargetResolver.resolve(targetSelector, context);
         if (targets.isEmpty()) return false;
 
         for (Entity target : targets) {
-            for (String msg : messages) {
-                String parsed = PlaceholderUtil.replace(msg, context, target);
-                target.sendMessage(PlaceholderUtil.color(parsed));
+            if (target instanceof Player p) {
+                p.sendActionBar(PlaceholderUtil.color(PlaceholderUtil.replace(message, context, p)));
             }
         }
         return true;

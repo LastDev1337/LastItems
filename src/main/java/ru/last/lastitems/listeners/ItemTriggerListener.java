@@ -3,8 +3,10 @@ package ru.last.lastitems.listeners;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Trident;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
@@ -13,6 +15,7 @@ import ru.last.lastitems.item.ActionTrigger;
 import ru.last.lastitems.item.TriggerContext;
 import ru.last.lastitems.item.CustomItem;
 import ru.last.lastitems.item.ItemManager;
+import ru.last.lastitems.item.effects.*;
 
 public class ItemTriggerListener implements Listener {
 
@@ -22,7 +25,7 @@ public class ItemTriggerListener implements Listener {
         this.itemManager = itemManager;
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onInteract(PlayerInteractEvent event) {
         Player player = event.getPlayer();
         ItemStack item = event.getItem();
@@ -43,7 +46,7 @@ public class ItemTriggerListener implements Listener {
         }
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onDamage(EntityDamageByEntityEvent event) {
         if (!(event.getDamager() instanceof Player player)) return;
 
@@ -55,7 +58,7 @@ public class ItemTriggerListener implements Listener {
         }
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onProjectileLaunch(ProjectileLaunchEvent event) {
         if (!(event.getEntity() instanceof Trident trident)) return;
         if (!(trident.getShooter() instanceof Player player)) return;
@@ -73,6 +76,22 @@ public class ItemTriggerListener implements Listener {
 
         if (customItem != null) {
             customItem.executeTrigger(ActionTrigger.ON_PROJECTILE_THROW, new TriggerContext(player, item, null, event));
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onFallDamage(EntityDamageEvent event) {
+        if (event.getCause() == EntityDamageEvent.DamageCause.FALL) {
+            if (PotionEffect.NO_FALL_KEY != null) {
+                Long expiry = event.getEntity().getPersistentDataContainer().get(PotionEffect.NO_FALL_KEY, org.bukkit.persistence.PersistentDataType.LONG);
+                if (expiry != null) {
+                    if (System.currentTimeMillis() < expiry) {
+                        event.setCancelled(true);
+                    } else {
+                        event.getEntity().getPersistentDataContainer().remove(PotionEffect.NO_FALL_KEY);
+                    }
+                }
+            }
         }
     }
 }

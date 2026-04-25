@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "ru.last.lastitems"
-version = "0.1.2-BETA"
+version = "0.1.3-BETA"
 
 repositories {
     mavenCentral()

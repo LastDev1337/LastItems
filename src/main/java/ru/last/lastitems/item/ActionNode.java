@@ -6,8 +6,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
 import ru.last.lastitems.LastItemsFree;
-import ru.last.lastitems.item.actions.CooldownAction;
-import ru.last.lastitems.item.actions.NoTargetAction;
+import ru.last.lastitems.item.actions.*;
 
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -18,20 +17,24 @@ public class ActionNode {
     private final List<ItemEffect> effects;
     private final NoTargetAction noTargetAction;
     private final CooldownAction cooldownAction;
+    private final ClearAction clearAction;
+    private final VanillaAction vanillaAction;
 
-    public ActionNode(int requiredValue, double chance, List<ItemEffect> effects, NoTargetAction noTargetAction, CooldownAction cooldownAction) {
+    public ActionNode(int requiredValue, double chance, List<ItemEffect> effects, NoTargetAction noTargetAction, CooldownAction cooldownAction, ClearAction clearAction, VanillaAction vanillaAction) {
         this.requiredValue = requiredValue;
         this.chance = chance;
         this.effects = effects;
         this.noTargetAction = noTargetAction;
         this.cooldownAction = cooldownAction;
+        this.clearAction = clearAction;
+        this.vanillaAction = vanillaAction;
     }
 
     public void tryExecute(TriggerContext context) {
         if (cooldownAction.isOnCooldown(context.player())) {
             cooldownAction.executeEffects(context);
-            if (context.event() != null) {
-                context.event().setCancelled(true);
+            if (context.event() instanceof org.bukkit.event.Cancellable c) {
+                c.setCancelled(true);
             }
             return;
         }
@@ -51,12 +54,14 @@ public class ActionNode {
             item.setItemMeta(meta);
 
             if (chance >= 100.0 || ThreadLocalRandom.current().nextDouble(100.0) < chance) {
-                boolean executedAny = false;
 
+                if (vanillaAction.execute(context)) {
+                    return;
+                }
+
+                boolean executedAny = false;
                 for (ItemEffect effect : effects) {
-                    if (effect.execute(context)) {
-                        executedAny = true;
-                    }
+                    if (effect.execute(context)) executedAny = true;
                 }
 
                 if (!executedAny) {
@@ -64,6 +69,7 @@ public class ActionNode {
                 }
 
                 cooldownAction.setCooldown(context.player());
+                clearAction.execute(context);
             }
         } else {
             pdc.set(counterKey, PersistentDataType.INTEGER, currentCount);
