@@ -15,7 +15,6 @@ import org.bukkit.inventory.ItemStack;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jspecify.annotations.NonNull;
 
 import ru.last.lastitems.LastItemsFree;
 import ru.last.lastitems.config.models.*;
@@ -172,8 +171,9 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                         CustomItem item = plugin.getItemManager().getById(id);
                         if (item != null) {
                             String name = id;
+
                             if (item.getBaseItem().hasItemMeta() && item.getBaseItem().getItemMeta().hasDisplayName()) {
-                                name = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(item.getBaseItem().getItemMeta().displayName());
+                                name = item.getBaseItem().getItemMeta().getDisplayName();
                             }
                             sendMsg(sender, null, msgList.getItem().replace("%id%", id).replace("%name%", name));
                         }
@@ -193,7 +193,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, @NotNull org.bukkit.command.Command command, @NotNull String label, @NotNull String @NonNull [] args) {
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull org.bukkit.command.Command command, @NotNull String label, @NotNull String [] args) {
         String commandString = String.join(" ", args);
 
         try {
@@ -213,7 +213,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     }
 
     @Override
-    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull org.bukkit.command.Command command, @NotNull String label, @NotNull String @NonNull [] args) {
+    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull org.bukkit.command.Command command, @NotNull String label, @NotNull String[] args) {
         String commandString = String.join(" ", args);
 
         try {

@@ -2,7 +2,6 @@ package ru.last.lastitems.hooks;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 
-import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
@@ -35,40 +34,35 @@ public class PlaceHook extends PlaceholderExpansion {
     }
 
     @Override
-    public @NotNull String getAuthor() { return plugin.getPluginMeta().getAuthors().getFirst(); }
+    public @NotNull String getAuthor() {
+        return plugin.getDescription().getAuthors().isEmpty() ? "Last" : plugin.getDescription().getAuthors().get(0);
+    }
 
     @Override
-    public @NotNull String getVersion() { return plugin.getPluginMeta().getVersion(); }
+    public @NotNull String getVersion() {
+        return plugin.getDescription().getVersion();
+    }
 
     @Override
     public boolean persist() { return true; }
 
     @Override
-    public @Nullable String onRequest(OfflinePlayer offlinePlayer, @NotNull String params) {
-        // %lastitem_amount_<item id>_<inventory type>_[player_name]%
-        if (params.toLowerCase().startsWith("amount_")) {
-            String[] args = params.split("_");
-            if (args.length < 3) return "0";
+    public @Nullable String onRequest(OfflinePlayer player, @NotNull String params) {
+        if (player == null || !player.isOnline()) return null;
 
-            String targetName = null;
-            String slotStr;
-            String itemId;
+        Player target = player.getPlayer();
+        if (target == null) return null;
 
-            if (isSlot(args[args.length - 1])) {
-                slotStr = args[args.length - 1];
-                itemId = buildString(args, args.length - 1);
-            } else if (args.length > 3 && isSlot(args[args.length - 2])) {
-                targetName = args[args.length - 1];
-                slotStr = args[args.length - 2];
-                itemId = buildString(args, args.length - 2);
-            } else {
-                return "Null format placeholder! Pls use that -> %lastitems_amount_<item id>_<inventory type>_[player_name]%";
-            }
+        String[] args = params.split("_");
+        if (args.length == 0) return null;
 
-            Player target = targetName != null ? Bukkit.getPlayerExact(targetName) : (offlinePlayer != null ? offlinePlayer.getPlayer() : null);
-            if (target == null || !target.isOnline()) return "Target player is null!";
+        if (args[0].equalsIgnoreCase("amount") && args.length >= 3) {
+            String slotStr = args[args.length - 1];
+            if (!isSlot(slotStr)) return null;
 
+            String itemId = buildString(args, args.length - 1);
             int count = 0;
+
             if (slotStr.equalsIgnoreCase("inventory")) {
                 for (ItemStack item : target.getInventory().getContents()) {
                     if (isCustomItem(item, itemId)) count += item.getAmount();

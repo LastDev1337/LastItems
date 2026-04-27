@@ -1,17 +1,14 @@
 package ru.last.lastitems;
 
-import org.bstats.bukkit.Metrics;
-import org.bstats.charts.SimplePie;
 import org.bukkit.NamespacedKey;
 import org.bukkit.plugin.java.JavaPlugin;
-
 import ru.last.lastitems.commands.MainCommand;
 import ru.last.lastitems.debug.DebugLogger;
 import ru.last.lastitems.config.*;
-import ru.last.lastitems.listeners.ItemTriggerListener;
 import ru.last.lastitems.item.ItemManager;
 import ru.last.lastitems.hooks.*;
-import ru.last.lastitems.utils.PlaceholderUtil;
+import ru.last.lastitems.utils.DirectionUtil;
+import ru.last.lastitems.item.triggers.*;
 
 import java.util.Objects;
 
@@ -22,7 +19,7 @@ public class LastItemsFree extends JavaPlugin {
     private ItemManager itemManager;
     private DebugLogger debugLogger;
     private ConfigManager configManager;
-    private boolean papiEnabled = false;
+    private DirectionUtil directionUtil;
 
     @Override
     public void onEnable() {
@@ -38,45 +35,24 @@ public class LastItemsFree extends JavaPlugin {
         this.itemManager.loadItems();
 
         if (getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
-            this.papiEnabled = true;
-            PlaceHook.init(this, itemManager);
+            PlaceHook.init(this, this.itemManager);
             getDebugLogger().info("PlaceholderAPI hooked!");
-        } else {
-            getDebugLogger().warn("PlaceholderAPI not found!");
         }
-
-        PlaceholderUtil.init();
-
-        if (getServer().getPluginManager().isPluginEnabled("WorldEdit")) {
-            WEHook.init(this);
-            getDebugLogger().info("WorldEdit hooked!");
-        } else {
-            getDebugLogger().warn("WorldEdit not found!");
-        }
-
-        if (getServer().getPluginManager().isPluginEnabled("WorldGuard")) {
-            WGHook.init(this);
-            getDebugLogger().info("WorldGuard hooked!");
-        } else {
-            getDebugLogger().warn("WorldGuard not found!");
-        }
-
-        int pluginId = 30928;
-        Metrics metrics = new Metrics(this, pluginId);
-
-        metrics.addCustomChart(
-                new SimplePie("chart_id", () -> "LastItems Free")
-        );
 
         MainCommand commandHandler = new MainCommand(this);
         Objects.requireNonNull(getCommand("lastitems")).setExecutor(commandHandler);
         Objects.requireNonNull(getCommand("lastitems")).setTabCompleter(commandHandler);
 
-        getServer().getPluginManager().registerEvents(new ItemTriggerListener(this.itemManager), this);
+        getServer().getPluginManager().registerEvents(new ClickTrigger(itemManager), this);
+        getServer().getPluginManager().registerEvents(new HitTrigger(itemManager), this);
+        getServer().getPluginManager().registerEvents(new ProjectileTrigger(itemManager), this);
+        getServer().getPluginManager().registerEvents(new KillEntityTrigger(itemManager), this);
+        getServer().getPluginManager().registerEvents(new KillPlayerTrigger(itemManager), this);
+        getServer().getPluginManager().registerEvents(new SwappingTrigger(itemManager), this);
 
         checkPlugmanX();
 
-        getLogger().info("v" + getPluginMeta().getVersion() + " enabled successfully!");
+        getLogger().info("v" + getDescription().getVersion() + " enabled successfully!");
     }
 
     private void checkPlugmanX() {
@@ -84,18 +60,15 @@ public class LastItemsFree extends JavaPlugin {
             getLogger().warning("================ !!! ПРЕДУПРЕЖДЕНИЕ !!! ================");
             getLogger().warning("На вашем сервере был найден PlugMan!");
             getLogger().warning("Категорически не рекомендуем им пользоваться!");
-            getLogger().warning("");
-            getLogger().warning("Если вы хотите с ним остаться, ваше право, но поддержку");
-            getLogger().warning("от автора при перезагрузке плагина через это говно не");
-            getLogger().warning("ждите! С любовью LastDev <3");
+            getLogger().warning("С любовью LastDev <3");
             getLogger().warning("================ !!! ПРЕДУПРЕЖДЕНИЕ !!! ================");
         }
     }
 
     public static LastItemsFree getInstance() { return instance; }
-    public boolean isPapiEnabled() { return papiEnabled; }
     public NamespacedKey getActionCounterKey() { return actionCounterKey; }
     public ItemManager getItemManager() { return itemManager; }
     public DebugLogger getDebugLogger() { return debugLogger; }
     public ConfigManager getConfigManager() { return configManager; }
+    public DirectionUtil getDirectionUtil() { return directionUtil; }
 }

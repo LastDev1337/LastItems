@@ -1,11 +1,11 @@
 package ru.last.lastitems.item.effects;
 
 import org.bukkit.Particle;
+import org.bukkit.World;
 import org.bukkit.entity.Entity;
-
 import ru.last.lastitems.item.ItemEffect;
 import ru.last.lastitems.item.TriggerContext;
-import ru.last.lastitems.utils.TargetResolver;
+import ru.last.lastitems.item.TargetResolver;
 
 import java.util.Collection;
 
@@ -28,7 +28,8 @@ public class ParticleEffect implements ItemEffect {
         if (targets.isEmpty()) return false;
 
         for (Entity target : targets) {
-            target.getWorld().spawnParticle(
+            World world = target.getWorld();
+            world.spawnParticle(
                     particle,
                     target.getLocation().add(0, target.getHeight() / 2, 0),
                     count, offset, offset, offset, 0.01

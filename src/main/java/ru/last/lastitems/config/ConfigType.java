@@ -2,8 +2,7 @@ package ru.last.lastitems.config;
 
 public enum ConfigType {
     MAIN("config.yml"),
-    MESSAGES("messages.yml"),
-    WIKI("wiki.yml");
+    MESSAGES("messages.yml");
 
     private final String fileName;
 

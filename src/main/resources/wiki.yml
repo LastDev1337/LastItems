@@ -8,6 +8,10 @@ item:
   lore:
     - 'string'
     - string
+    # TODO
+    - |
+      string1
+      string2
   all_flags: boolean
   enchanted: boolean
   material: stone # or basehead-<value>
@@ -50,9 +54,13 @@ actions:
   # on_kill_player
   # on_swapping
   - trigger: string
-    type: # TODO
-      entity: string # only on_kill_<entity/player> (https://jd.papermc.io/paper/org/bukkit/entity/EntityType.html)
-      swap: string # only on_swapping (F, 0,1,2,3,4,5,6,7,8 (hotbar's), main_hand and off_hand
+    type:
+      click: string # only on_left_click or on_right_click - air or block
+      entity: string # only on_kill_entity (https://jd.papermc.io/paper/org/bukkit/entity/EntityType.html)
+      swap: string # only on_swapping (F, 0,1,2,3,4,5,6,7,8 (hotbar's), main_hand and off_hand)
+    chance: long
+    value: long
+
     vanilla:
       enable: boolean
       event: cancel
@@ -68,9 +76,6 @@ actions:
         - type: chat
           messages:
             - '<>'
-    chance: long
-    value: long
-
     no_targets:
       enable: boolean
       messages:
@@ -117,6 +122,8 @@ actions:
 
       - type: message
         target: player
+        message: ''
+        # or
         messages:
           - '<>'
 
@@ -157,6 +164,7 @@ actions:
         settings:
           fire:
             time:
+              format: string
               type: 'ticks' # or seconds
               value: int
           amount: int # сколько раз ударит молния в target
@@ -183,6 +191,7 @@ actions:
             list:
               - potion: slowness
                 time:
+                  format: string
                   type: 'ticks' # or seconds
                   value: int
                 level: int
@@ -212,67 +221,9 @@ actions:
         target: player
         settings:
           time:
+            format: string
             type: 'ticks' # or seconds
             value: int
-        messages:
-          - type: chat
-            messages:
-              - '<>'
-
-      - type: worldedit # TODO
-        target: player
-        settings:
-          event: schematic_paste
-          file: string                    # Имя файла из папки WorldEdit/schematics или FastAsyncWorldEdit/schematics
-                                          # или LastItems/schematics
-          offset: 'int;int;int'           # Смещение (X;Y;Z) относительно локации цели
-          ingore_air_blocks: boolean      # Вставлять ли блоки воздуха (false = блоки карты не удалятся)
-          include_entities: boolean       # Спавнить ли сущностей из схематика (картины, рамки, мобы)
-          rotation: int                  # Поворот в градусах
-        messages:
-          - type: chat
-            messages:
-              - '<>'
-
-      - type: worldedit # TODO
-        target: player
-        settings:
-          event: schematic_undo
-          steps: 1                        # Сколько последних действий WorldEdit отменить для этого игрока
-        messages:
-          - type: chat
-            messages:
-              - '<>'
-
-      - type: worldguard # TODO
-        target: player
-        settings:
-          event: create_region
-          region_name: string # поддержка плейсхолдеров + PlaceholderAPI
-          offsets:
-            min: 'int;int;int'
-            max: 'int;int;int'
-          owners:
-            - '%player%'
-          members:
-            - '%target%'
-          flags:
-            - 'pvp deny'
-            - 'build deny'
-            - 'block-break deny'
-            - 'entry deny'
-            - 'entry-deny-message: &cВы не можете войти в защитный купол игрока %player_name%!'
-            - 'greeting: &aВы под защитой тотема!'
-        messages:
-          - type: chat
-            messages:
-              - '<>'
-
-      - type: worldguard # TODO
-        target: player
-        settings:
-          event: remove_region
-          region_name: string # поддержка плейсхолдеров + PlaceholderAPI
         messages:
           - type: chat
             messages:

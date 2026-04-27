@@ -5,7 +5,7 @@ import org.bukkit.entity.Entity;
 import ru.last.lastitems.item.ItemEffect;
 import ru.last.lastitems.item.TriggerContext;
 import ru.last.lastitems.utils.PlaceholderUtil;
-import ru.last.lastitems.utils.TargetResolver;
+import ru.last.lastitems.item.TargetResolver;
 
 import java.util.Collection;
 import java.util.List;

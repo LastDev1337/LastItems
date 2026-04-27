@@ -1,15 +1,12 @@
 package ru.last.lastitems.item.messages;
 
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.title.Title;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import ru.last.lastitems.item.ItemEffect;
 import ru.last.lastitems.item.TriggerContext;
 import ru.last.lastitems.utils.PlaceholderUtil;
-import ru.last.lastitems.utils.TargetResolver;
+import ru.last.lastitems.item.TargetResolver;
 
-import java.time.Duration;
 import java.util.Collection;
 
 public class TitleMessage implements ItemEffect {
@@ -32,17 +29,12 @@ public class TitleMessage implements ItemEffect {
         Collection<? extends Entity> targets = TargetResolver.resolve(targetSelector, context);
         if (targets.isEmpty()) return false;
 
-        Title.Times times = Title.Times.times(
-                Duration.ofMillis(fadeIn * 50L),
-                Duration.ofMillis(stay * 50L),
-                Duration.ofMillis(fadeOut * 50L)
-        );
-
         for (Entity target : targets) {
             if (target instanceof Player p) {
-                Component mainTitle = PlaceholderUtil.color(PlaceholderUtil.replace(titleRaw, context, p));
-                Component subTitle = PlaceholderUtil.color(PlaceholderUtil.replace(subtitleRaw, context, p));
-                p.showTitle(Title.title(mainTitle, subTitle, times));
+                String title = PlaceholderUtil.colorString(PlaceholderUtil.replace(titleRaw, context, p));
+                String subTitle = PlaceholderUtil.colorString(PlaceholderUtil.replace(subtitleRaw, context, p));
+
+                p.sendTitle(title, subTitle, fadeIn, stay, fadeOut);
             }
         }
         return true;

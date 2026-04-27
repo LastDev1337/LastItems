@@ -4,7 +4,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import ru.last.lastitems.item.*;
-import ru.last.lastitems.utils.TargetResolver;
+import ru.last.lastitems.item.TargetResolver;
 
 import java.util.Collection;
 import java.util.List;

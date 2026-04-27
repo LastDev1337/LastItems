@@ -1,6 +1,5 @@
 package ru.last.lastitems.item.actions;
 
-import org.bukkit.event.Cancellable;
 import ru.last.lastitems.item.*;
 
 import java.util.List;
@@ -21,12 +20,12 @@ public class VanillaAction {
 
         boolean stopEffects = false;
 
-        if (context.event() instanceof Cancellable cancellable) {
+        if (context.event() != null) {
             if (eventAction.equals("cancel")) {
-                cancellable.setCancelled(true);
+                context.event().setCancelled(true);
                 stopEffects = true;
             } else if (eventAction.equals("uncancel") || eventAction.equals("allow")) {
-                cancellable.setCancelled(false);
+                context.event().setCancelled(false);
             }
         }
 

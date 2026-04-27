@@ -5,5 +5,8 @@ public enum ActionTrigger {
     ON_PROJECTILE_IMPACT,
     ON_RIGHT_CLICK,
     ON_LEFT_CLICK,
-    ON_HIT
+    ON_HIT,
+    ON_KILL_ENTITY,
+    ON_KILL_PLAYER,
+    ON_SWAPPING
 }

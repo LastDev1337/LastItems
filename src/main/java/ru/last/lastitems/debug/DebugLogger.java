@@ -46,25 +46,19 @@ public class DebugLogger implements DebugType {
     @Override
     public void error(String message, Throwable t) {
         if (!globalEnable || !errorEnable) return;
-        printMassive(errorPrefix, message + "\n§cДетали: " + t.getMessage(), "§c");
+        printMassive(errorPrefix, message + "\n§cДетали: " + t.getMessage());
         t.printStackTrace();
-    }
-
-    @Override
-    public void critical(String message) {
-        if (!globalEnable || !errorEnable) return;
-        printMassive(errorPrefix, message, "§4");
     }
 
     private void print(String prefix, String message, String color) {
         Bukkit.getConsoleSender().sendMessage("§f[LastItems] §r" + prefix + color + message);
     }
 
-    private void printMassive(String prefix, String message, String color) {
-        Bukkit.getConsoleSender().sendMessage(color + "============================================================");
+    private void printMassive(String prefix, String message) {
+        Bukkit.getConsoleSender().sendMessage("§c" + "============================================================");
         Bukkit.getConsoleSender().sendMessage("§b[LastItems] §r" + prefix);
-        Bukkit.getConsoleSender().sendMessage(color + "КРИТИЧЕСКОЕ СООБЩЕНИЕ / ОШИБКА:");
-        Bukkit.getConsoleSender().sendMessage(color + message);
-        Bukkit.getConsoleSender().sendMessage(color + "============================================================");
+        Bukkit.getConsoleSender().sendMessage("§c" + "КРИТИЧЕСКАЯ ОШИБКА:");
+        Bukkit.getConsoleSender().sendMessage("§c" + message);
+        Bukkit.getConsoleSender().sendMessage("§c" + "============================================================");
     }
 }

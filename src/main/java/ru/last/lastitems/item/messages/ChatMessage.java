@@ -4,7 +4,7 @@ import org.bukkit.entity.Entity;
 import ru.last.lastitems.item.ItemEffect;
 import ru.last.lastitems.item.TriggerContext;
 import ru.last.lastitems.utils.PlaceholderUtil;
-import ru.last.lastitems.utils.TargetResolver;
+import ru.last.lastitems.item.TargetResolver;
 
 import java.util.Collection;
 import java.util.List;
@@ -26,7 +26,8 @@ public class ChatMessage implements ItemEffect {
 
         for (Entity target : targets) {
             for (String msg : messages) {
-                target.sendMessage(PlaceholderUtil.color(PlaceholderUtil.replace(msg, context, target)));
+                String coloredText = PlaceholderUtil.colorString(PlaceholderUtil.replace(msg, context, target));
+                target.sendMessage(coloredText);
             }
         }
         return true;

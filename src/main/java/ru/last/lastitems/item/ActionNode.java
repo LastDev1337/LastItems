@@ -14,15 +14,17 @@ import java.util.concurrent.ThreadLocalRandom;
 public class ActionNode {
     private final int requiredValue;
     private final double chance;
+    private final TriggerConditions conditions;
     private final List<ItemEffect> effects;
     private final NoTargetAction noTargetAction;
     private final CooldownAction cooldownAction;
     private final ClearAction clearAction;
     private final VanillaAction vanillaAction;
 
-    public ActionNode(int requiredValue, double chance, List<ItemEffect> effects, NoTargetAction noTargetAction, CooldownAction cooldownAction, ClearAction clearAction, VanillaAction vanillaAction) {
+    public ActionNode(int requiredValue, double chance, TriggerConditions conditions, List<ItemEffect> effects, NoTargetAction noTargetAction, CooldownAction cooldownAction, ClearAction clearAction, VanillaAction vanillaAction) {
         this.requiredValue = requiredValue;
         this.chance = chance;
+        this.conditions = conditions;
         this.effects = effects;
         this.noTargetAction = noTargetAction;
         this.cooldownAction = cooldownAction;
@@ -31,10 +33,12 @@ public class ActionNode {
     }
 
     public void tryExecute(TriggerContext context) {
+        if (!conditions.check(context)) return;
+
         if (cooldownAction.isOnCooldown(context.player())) {
             cooldownAction.executeEffects(context);
-            if (context.event() instanceof org.bukkit.event.Cancellable c) {
-                c.setCancelled(true);
+            if (context.event() != null) {
+                context.event().setCancelled(true);
             }
             return;
         }

@@ -1,11 +1,13 @@
 package ru.last.lastitems.item.messages;
 
+import net.md_5.bungee.api.ChatMessageType;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import ru.last.lastitems.item.ItemEffect;
 import ru.last.lastitems.item.TriggerContext;
 import ru.last.lastitems.utils.PlaceholderUtil;
-import ru.last.lastitems.utils.TargetResolver;
+import ru.last.lastitems.item.TargetResolver;
 
 import java.util.Collection;
 
@@ -26,7 +28,12 @@ public class ActionbarMessage implements ItemEffect {
 
         for (Entity target : targets) {
             if (target instanceof Player p) {
-                p.sendActionBar(PlaceholderUtil.color(PlaceholderUtil.replace(message, context, p)));
+                String coloredStr = PlaceholderUtil.colorString(PlaceholderUtil.replace(message, context, p));
+
+                p.spigot().sendMessage(
+                        ChatMessageType.ACTION_BAR,
+                        TextComponent.fromLegacyText(coloredStr)
+                );
             }
         }
         return true;

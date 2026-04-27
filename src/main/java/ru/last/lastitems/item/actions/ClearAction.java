@@ -22,7 +22,8 @@ public class ClearAction {
         if (!enable || context.player() == null) return;
 
         ItemStack item = context.player().getInventory().getItem(slot);
-        if (!item.isEmpty()) {
+
+        if (item != null && !item.getType().isAir() && item.getAmount() > 0) {
             item.setAmount(item.getAmount() - 1);
         }
 

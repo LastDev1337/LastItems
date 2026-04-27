@@ -53,7 +53,6 @@ public class ConfigManager {
             switch (type) {
                 case MAIN -> configs.put(type, new MainConfig(rootMap));
                 case MESSAGES -> configs.put(type, new MessagesConfig(rootMap));
-                case WIKI -> configs.put(type, new WikiConfig(rootMap));
             }
 
         } catch (Exception e) {

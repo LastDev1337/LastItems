@@ -5,5 +5,4 @@ public interface DebugType {
     void warn(String message);
     void error(String message);
     void error(String message, Throwable t);
-    void critical(String message);
 }

@@ -1,11 +1,8 @@
-package ru.last.lastitems.utils;
+package ru.last.lastitems.item;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
-
-import ru.last.lastitems.item.TriggerContext;
 
 import java.util.Collection;
 import java.util.List;
@@ -34,7 +31,7 @@ public final class TargetResolver {
             case "all" -> Bukkit.getOnlinePlayers();
             case "victim:entity" -> context.victim() != null && !(context.victim() instanceof Player) ? List.of(context.victim()) : List.of();
             case "victim:player" -> context.victim() instanceof Player ? List.of(context.victim()) : List.of();
-            case "entity" -> context.player().getWorld().getEntitiesByClass(Mob.class);
+            case "victim" -> context.victim() != null ? List.of(context.victim()) : List.of();
             case "player" -> List.of(context.player());
             default -> List.of(context.player());
         };
