@@ -8,5 +8,8 @@ public enum ActionTrigger {
     ON_HIT,
     ON_KILL_ENTITY,
     ON_KILL_PLAYER,
-    ON_SWAPPING
+    ON_SWAPPING,
+    ON_BLOCK_BREAK,
+    ON_BLOCK_PLACE,
+    ON_INTERACT
 }

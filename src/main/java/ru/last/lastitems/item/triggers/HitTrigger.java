@@ -13,10 +13,7 @@ import ru.last.lastitems.item.TriggerContext;
 
 public class HitTrigger implements Listener {
     private final ItemManager itemManager;
-
-    public HitTrigger(ItemManager itemManager) {
-        this.itemManager = itemManager;
-    }
+    public HitTrigger(ItemManager itemManager) { this.itemManager = itemManager; }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onDamage(EntityDamageByEntityEvent event) {
@@ -26,8 +23,8 @@ public class HitTrigger implements Listener {
         if (item.getType().isAir() || !item.hasItemMeta()) return;
 
         CustomItem customItem = itemManager.getCustomItem(item);
-        if (customItem == null) return;
-
-        customItem.executeTrigger(ActionTrigger.ON_HIT, new TriggerContext(player, item, event.getEntity(), event));
+        if (customItem != null) {
+            customItem.executeTrigger(ActionTrigger.ON_HIT, new TriggerContext(player, item, event.getEntity(), event));
+        }
     }
 }

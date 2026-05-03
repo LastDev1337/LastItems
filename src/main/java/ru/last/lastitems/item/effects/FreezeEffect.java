@@ -9,12 +9,12 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.plugin.java.JavaPlugin;
-
 import ru.last.lastitems.LastItemsFree;
 import ru.last.lastitems.item.ItemEffect;
 import ru.last.lastitems.item.TriggerContext;
 import ru.last.lastitems.item.TargetResolver;
 
+import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.Map;
 import java.util.UUID;
@@ -26,13 +26,30 @@ public class FreezeEffect implements ItemEffect {
     private final boolean allowRotation;
     private final boolean allowInteract;
 
+    private static Method getFreezeTicksMethod;
+    private static Method setFreezeTicksMethod;
+    private static boolean modernApiCached;
+
+    static {
+        try {
+            getFreezeTicksMethod = Entity.class.getMethod("getFreezeTicks");
+            setFreezeTicksMethod = Entity.class.getMethod("setFreezeTicks", int.class);
+            modernApiCached = true;
+        } catch (NoSuchMethodException ignored) {
+            modernApiCached = false; // Fallback for 1.16.5
+        }
+    }
+
     public FreezeEffect(String targetSelector, int ticks, boolean allowRotation, boolean allowInteract) {
         this.targetSelector = targetSelector;
         this.ticks = ticks;
         this.allowRotation = allowRotation;
         this.allowInteract = allowInteract;
 
-        LegacyFreezeManager.init(LastItemsFree.getInstance());
+        // 1.16.5 method
+        if (!modernApiCached) {
+            LegacyFreezeManager.init(LastItemsFree.getInstance());
+        }
     }
 
     @Override
@@ -40,28 +57,17 @@ public class FreezeEffect implements ItemEffect {
         Collection<? extends Entity> targets = TargetResolver.resolve(targetSelector, context);
         if (targets.isEmpty()) return false;
 
-        boolean isModern = isModernFreezeSupported();
-
         for (Entity target : targets) {
-            if (isModern) {
+            if (modernApiCached) {
                 try {
-                    int current = (int) target.getClass().getMethod("getFreezeTicks").invoke(target);
-                    target.getClass().getMethod("setFreezeTicks", int.class).invoke(target, Math.max(current, ticks));
+                    int current = (int) getFreezeTicksMethod.invoke(target);
+                    setFreezeTicksMethod.invoke(target, Math.max(current, ticks));
                 } catch (Exception ignored) {}
             } else {
                 LegacyFreezeManager.freeze(target, ticks, allowRotation, allowInteract);
             }
         }
         return true;
-    }
-
-    private boolean isModernFreezeSupported() {
-        try {
-            Entity.class.getMethod("setFreezeTicks", int.class);
-            return true;
-        } catch (NoSuchMethodException e) {
-            return false;
-        }
     }
 
     public static class LegacyFreezeManager implements Listener {

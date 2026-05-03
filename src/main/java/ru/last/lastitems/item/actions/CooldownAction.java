@@ -1,7 +1,6 @@
 package ru.last.lastitems.item.actions;
 
 import org.bukkit.entity.Player;
-import ru.last.lastitems.item.ItemEffect;
 import ru.last.lastitems.item.*;
 
 import java.util.HashMap;
@@ -25,8 +24,7 @@ public class CooldownAction {
 
     public boolean isOnCooldown(Player player) {
         if (!enable || player == null) return false;
-        long lastUsed = cooldowns.getOrDefault(player.getUniqueId(), 0L);
-        return System.currentTimeMillis() < lastUsed + cooldownMillis;
+        return System.currentTimeMillis() < cooldowns.getOrDefault(player.getUniqueId(), 0L) + cooldownMillis;
     }
 
     public void setCooldown(Player player) {
@@ -35,19 +33,21 @@ public class CooldownAction {
         }
     }
 
+    public long getRemainingTime(Player player) {
+        if (!enable || player == null) return 0;
+        long lastUsed = cooldowns.getOrDefault(player.getUniqueId(), 0L);
+        return Math.max(0, (lastUsed + cooldownMillis) - System.currentTimeMillis());
+    }
+
     public void executeEffects(TriggerContext context) {
         if (context.player() == null) return;
-        long lastUsed = cooldowns.getOrDefault(context.player().getUniqueId(), 0L);
-        long left = (lastUsed + cooldownMillis) - System.currentTimeMillis();
-        if (left < 0) left = 0;
 
+        long left = getRemainingTime(context.player());
         String formattedTime = TimeFormatter.format(left, format);
         TriggerContext cdContext = new TriggerContext(
                 context.player(), context.item(), context.victim(), context.event(), formattedTime
         );
 
-        for (ItemEffect effect : effects) {
-            effect.execute(cdContext);
-        }
+        effects.forEach(effect -> effect.execute(cdContext));
     }
 }

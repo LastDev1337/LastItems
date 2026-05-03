@@ -9,12 +9,13 @@ import ru.last.lastitems.item.TargetResolver;
 
 import java.lang.reflect.Method;
 import java.util.Collection;
+import java.util.Locale;
 
 public class DamageEffect implements ItemEffect {
     private final String targetSelector;
     private final double amount;
-    private final String damageType;
     private final String effectStr;
+    private final NamespacedKey cachedDamageKey;
 
     private static boolean isModernDamageSupported = false;
     private static Method damageMethod;
@@ -29,7 +30,6 @@ public class DamageEffect implements ItemEffect {
         try {
             Class<?> damageSourceClass = Class.forName("org.bukkit.damage.DamageSource");
             Class<?> damageTypeClass = Class.forName("org.bukkit.damage.DamageType");
-
             damageMethod = Entity.class.getMethod("damage", double.class, damageSourceClass);
             damageSourceBuilderMethod = damageSourceClass.getMethod("builder", damageTypeClass);
             damageSourceBuildMethod = damageSourceBuilderMethod.getReturnType().getMethod("build");
@@ -55,8 +55,13 @@ public class DamageEffect implements ItemEffect {
     public DamageEffect(String targetSelector, double amount, String damageType, String effectStr) {
         this.targetSelector = targetSelector;
         this.amount = amount;
-        this.damageType = damageType;
         this.effectStr = effectStr;
+
+        if (damageType != null && !damageType.isBlank()) {
+            this.cachedDamageKey = NamespacedKey.fromString(damageType.toLowerCase(Locale.ROOT));
+        } else {
+            this.cachedDamageKey = null;
+        }
     }
 
     @Override
@@ -68,13 +73,8 @@ public class DamageEffect implements ItemEffect {
             if (target instanceof Damageable d) {
                 boolean damagedWithModernAPI = false;
 
-                if (isModernDamageSupported && damageType != null && !damageType.isEmpty()) {
-                    try {
-                        NamespacedKey key = damageType.contains(":") ? NamespacedKey.fromString(damageType) : NamespacedKey.minecraft(damageType.toLowerCase());
-                        if (key != null) {
-                            damagedWithModernAPI = tryModernDamageFast(d, amount, key);
-                        }
-                    } catch (Throwable ignored) {}
+                if (isModernDamageSupported && cachedDamageKey != null) {
+                    damagedWithModernAPI = tryModernDamageFast(d, amount, cachedDamageKey);
                 }
 
                 if (!damagedWithModernAPI) {
@@ -87,18 +87,13 @@ public class DamageEffect implements ItemEffect {
 
     private boolean tryModernDamageFast(Damageable target, double amount, NamespacedKey key) {
         try {
-            Object type;
-            if (registryAccessObj != null) {
-                Object registry = getRegistryMethod.invoke(registryAccessObj, damageTypeRegistryKey);
-                type = registry.getClass().getMethod("get", NamespacedKey.class).invoke(registry, key);
-            } else {
-                type = legacyDamageRegistry.getClass().getMethod("get", NamespacedKey.class).invoke(legacyDamageRegistry, key);
-            }
+            Object type = registryAccessObj != null ?
+                    getRegistryMethod.invoke(registryAccessObj, damageTypeRegistryKey).getClass().getMethod("get", NamespacedKey.class).invoke(getRegistryMethod.invoke(registryAccessObj, damageTypeRegistryKey), key) :
+                    legacyDamageRegistry.getClass().getMethod("get", NamespacedKey.class).invoke(legacyDamageRegistry, key);
 
             if (type != null) {
                 Object builder = damageSourceBuilderMethod.invoke(null, type);
-                Object damageSource = damageSourceBuildMethod.invoke(builder);
-                damageMethod.invoke(target, amount, damageSource);
+                damageMethod.invoke(target, amount, damageSourceBuildMethod.invoke(builder));
                 return true;
             }
         } catch (Throwable ignored) {}

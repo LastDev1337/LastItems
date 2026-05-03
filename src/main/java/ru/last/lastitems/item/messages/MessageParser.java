@@ -24,7 +24,6 @@ public class MessageParser {
                 YamlMap msgMap = mapRes.getOrThrow();
                 String msgType = msgMap.get("type").asString("").toLowerCase();
 
-                // Автоматически ищем параметры в секции 'settings', если она есть
                 YamlMap data = msgMap.get("settings").asYamlMap().hasResult()
                         ? msgMap.get("settings").asYamlMap().getOrThrow()
                         : msgMap;

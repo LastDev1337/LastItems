@@ -13,10 +13,7 @@ import ru.last.lastitems.item.TriggerContext;
 
 public class KillPlayerTrigger implements Listener {
     private final ItemManager itemManager;
-
-    public KillPlayerTrigger(ItemManager itemManager) {
-        this.itemManager = itemManager;
-    }
+    public KillPlayerTrigger(ItemManager itemManager) { this.itemManager = itemManager; }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerDeath(PlayerDeathEvent event) {
@@ -28,8 +25,8 @@ public class KillPlayerTrigger implements Listener {
         if (item.getType().isAir() || !item.hasItemMeta()) return;
 
         CustomItem customItem = itemManager.getCustomItem(item);
-        if (customItem == null) return;
-
-        customItem.executeTrigger(ActionTrigger.ON_KILL_PLAYER, new TriggerContext(player, item, event.getEntity(), event));
+        if (customItem != null) {
+            customItem.executeTrigger(ActionTrigger.ON_KILL_PLAYER, new TriggerContext(player, item, event.getEntity(), event));
+        }
     }
 }

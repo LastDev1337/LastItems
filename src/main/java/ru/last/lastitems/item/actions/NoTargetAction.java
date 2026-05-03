@@ -2,7 +2,6 @@ package ru.last.lastitems.item.actions;
 
 import ru.last.lastitems.item.ItemEffect;
 import ru.last.lastitems.item.TriggerContext;
-
 import java.util.List;
 
 public class NoTargetAction {
@@ -15,9 +14,6 @@ public class NoTargetAction {
     }
 
     public void execute(TriggerContext context) {
-        if (!enable) return;
-        for (ItemEffect effect : effects) {
-            effect.execute(context);
-        }
+        if (enable) effects.forEach(e -> e.execute(context));
     }
 }

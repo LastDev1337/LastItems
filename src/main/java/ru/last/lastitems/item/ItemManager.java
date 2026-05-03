@@ -29,12 +29,12 @@ import java.util.stream.Stream;
 public class ItemManager {
 
     private final LastItemsFree plugin;
-    private final Map<String, CustomItem> registry = new HashMap<>();
+    private final Map<String, CustomItem> registry = new HashMap<>(64);
     private final NamespacedKey idKey;
 
     public ItemManager(@NotNull LastItemsFree plugin) {
         this.plugin = plugin;
-        this.idKey = new NamespacedKey(plugin, "item_id");
+        this.idKey = new NamespacedKey(plugin, "lastitems_free");
     }
 
     public void loadItems() {
@@ -54,7 +54,10 @@ public class ItemManager {
 
         try (Stream<Path> paths = Files.walk(itemsFolder)) {
             paths.filter(Files::isRegularFile)
-                    .filter(path -> path.toString().endsWith(".yml") || path.toString().endsWith(".yaml"))
+                    .filter(path -> {
+                        String name = path.toString();
+                        return name.endsWith(".yml") || name.endsWith(".yaml");
+                    })
                     .forEach(this::loadItemFromFile);
         } catch (IOException e) {
             plugin.getDebugLogger().error("Ошибка при чтении файлов предметов", e);
@@ -77,13 +80,15 @@ public class ItemManager {
             }
 
             ItemModel model = modelResult.getOrThrow();
-            String id = root.get("item").asYamlMap().getOrThrow().get("id").asString(file.getName().replace(".yml", ""));
+            String rawId = root.get("item").asYamlMap().getOrThrow().get("id").asString(file.getName().replace(".yml", ""));
+            String id = rawId.toLowerCase(Locale.ROOT);
+
             int amount = root.get("item").asYamlMap().getOrThrow().get("amount").asInt(1);
 
             Map<ActionTrigger, List<ActionNode>> actions = parseActions(root.get("actions"));
 
             CustomItem customItem = new CustomItem(id, model, model.build(), amount, actions);
-            registry.put(id.toLowerCase(), customItem);
+            registry.put(id, customItem);
 
         } catch (Exception e) {
             plugin.getDebugLogger().error("Критическая ошибка при загрузке предмета: " + file.getName(), e);
@@ -96,7 +101,7 @@ public class ItemManager {
             for (Object obj : list) {
                 YamlMap actionMap = YamlValue.wrap(obj).asYamlMap().getOrThrow();
 
-                String triggerStr = actionMap.get("trigger").asString("").toUpperCase().replace(" ", "_");
+                String triggerStr = actionMap.get("trigger").asString("").toUpperCase(Locale.ROOT).replace(" ", "_");
                 if (!triggerStr.isEmpty() && !triggerStr.startsWith("ON_")) {
                     triggerStr = "ON_" + triggerStr;
                 }
@@ -111,7 +116,8 @@ public class ItemManager {
                     if (effectsNode.getRaw() instanceof List<?> effList) {
 
                         String defaultTarget = switch (trigger) {
-                            case ON_RIGHT_CLICK, ON_LEFT_CLICK, ON_SWAPPING, ON_PROJECTILE_THROW -> "player";
+                            case ON_RIGHT_CLICK, ON_LEFT_CLICK, ON_INTERACT, ON_SWAPPING, ON_PROJECTILE_THROW -> "player";
+                            case ON_BLOCK_BREAK, ON_BLOCK_PLACE -> "";
                             default -> "victim";
                         };
 
@@ -123,19 +129,81 @@ public class ItemManager {
                         plugin.getDebugLogger().warn("Внимание: У триггера " + triggerStr + " пустая секция эффектов!");
                     }
 
+                    int value = actionMap.get("value").asInt(1);
+                    double chance = actionMap.get("chance").asDouble(100.0);
+
                     YamlMap typeMap = actionMap.get("type").asYamlMap().hasResult() ? actionMap.get("type").asYamlMap().getOrThrow() : new YamlMap();
                     TriggerConditions conditions = new TriggerConditions(typeMap);
 
-                    NoTargetAction noTarget = new NoTargetAction(false, List.of());
-                    CooldownAction cooldown = new CooldownAction(false, 0, "simple", List.of());
-                    ClearAction clear = new ClearAction(false, "hand", List.of());
-                    VanillaAction vanilla = new VanillaAction(false, "none", List.of());
+                    YamlValue vanillaNode = actionMap.get("vanilla");
+                    boolean vanillaEnable = false;
+                    List<VanillaAction.VanillaEventConfig> vanillaEvents = new ArrayList<>();
+                    List<ItemEffect> vanillaMessages = Collections.emptyList();
+
+                    if (vanillaNode.asYamlMap().hasResult()) {
+                        YamlMap vMap = vanillaNode.asYamlMap().getOrThrow();
+                        vanillaEnable = vMap.get("enable").asBool(false);
+
+                        YamlValue eventsNode = vMap.get("events");
+                        if (eventsNode.getRaw() instanceof List<?> vList) {
+                            for (Object vObj : vList) {
+                                if (!YamlValue.wrap(vObj).asYamlMap().hasResult()) continue;
+                                YamlMap vEventMap = YamlValue.wrap(vObj).asYamlMap().getOrThrow();
+
+                                String eType = vEventMap.get("type").asString("");
+                                String eTrigger = vEventMap.get("trigger").asString("cancel").toLowerCase(Locale.ROOT);
+
+                                if (!eType.isEmpty()) {
+                                    vanillaEvents.add(new VanillaAction.VanillaEventConfig(eType, eTrigger));
+                                }
+                            }
+                        }
+                        vanillaMessages = MessageParser.parse(vanillaNode, "player");
+                    }
+                    VanillaAction vanilla = new VanillaAction(vanillaEnable, vanillaEvents, vanillaMessages);
+
+                    YamlValue noTargetNode = actionMap.get("no_targets");
+                    boolean ntEnable = false;
+                    List<ItemEffect> ntMessages = Collections.emptyList();
+                    if (noTargetNode.asYamlMap().hasResult()) {
+                        YamlMap ntMap = noTargetNode.asYamlMap().getOrThrow();
+                        ntEnable = ntMap.get("enable").asBool(false);
+                        ntMessages = MessageParser.parse(noTargetNode, "player");
+                    }
+                    NoTargetAction noTarget = new NoTargetAction(ntEnable, ntMessages);
+
+                    YamlValue cooldownNode = actionMap.get("cooldown");
+                    boolean cdEnable = false;
+                    int cdTime = 0;
+                    String cdFormat = "simple";
+                    List<ItemEffect> cdMessages = Collections.emptyList();
+                    if (cooldownNode.asYamlMap().hasResult()) {
+                        YamlMap cdMap = cooldownNode.asYamlMap().getOrThrow();
+                        cdEnable = cdMap.get("enable").asBool(false);
+
+                        TimeData cdTimeData = TimeData.parse(cdMap.get("time"), 0);
+                        cdTime = cdTimeData.ticks();
+                        cdFormat = cdTimeData.format();
+
+                        cdMessages = MessageParser.parse(cooldownNode, "player");
+                    }
+                    CooldownAction cooldown = new CooldownAction(cdEnable, cdTime, cdFormat, cdMessages);
+
+                    YamlValue clearNode = actionMap.get("clear");
+                    boolean clearEnable = false;
+                    String clearType = "hand";
+                    List<ItemEffect> clearMessages = Collections.emptyList();
+                    if (clearNode.asYamlMap().hasResult()) {
+                        YamlMap clMap = clearNode.asYamlMap().getOrThrow();
+                        clearEnable = clMap.get("enable").asBool(false);
+                        clearType = clMap.get("type").asString("hand").toLowerCase(Locale.ROOT);
+                        clearMessages = MessageParser.parse(clearNode, "player");
+                    }
+                    ClearAction clear = new ClearAction(clearEnable, clearType, clearMessages);
 
                     ActionNode node = new ActionNode(
-                            actionMap.get("value").asInt(1),
-                            actionMap.get("chance").asDouble(100.0),
-                            conditions,
-                            effects, noTarget, cooldown, clear, vanilla
+                            value, chance, conditions, effects,
+                            noTarget, cooldown, clear, vanilla
                     );
 
                     map.computeIfAbsent(trigger, k -> new ArrayList<>()).add(node);
@@ -155,9 +223,43 @@ public class ItemManager {
         YamlMap map = node.asYamlMap().getOrThrow();
 
         String targetSelector = map.get("target").asString(defaultTarget);
-        String type = map.get("type").asString("").toLowerCase();
+        String type = map.get("type").asString("").toLowerCase(Locale.ROOT);
 
         switch (type) {
+            case "break_blocks" -> {
+                YamlMap settings = map.get("settings").asYamlMap().hasResult() ? map.get("settings").asYamlMap().getOrThrow() : new YamlMap();
+
+                int rx = 1, ry = 1, rz = 1;
+
+                String radStr = settings.get("radius").asString("1").toLowerCase(Locale.ROOT).replace(";", "x");
+
+                try {
+                    if (radStr.contains("x")) {
+                        String[] parts = radStr.split("x");
+                        if (parts.length == 3) {
+                            rx = (Integer.parseInt(parts[0].trim()) - 1) / 2;
+                            ry = (Integer.parseInt(parts[1].trim()) - 1) / 2;
+                            rz = (Integer.parseInt(parts[2].trim()) - 1) / 2;
+                        }
+                    } else {
+                        int r = Integer.parseInt(radStr.trim());
+                        rx = r; ry = r; rz = r;
+                    }
+                } catch (NumberFormatException e) {
+                    plugin.getDebugLogger().warn("Ошибка парсинга radius: " + radStr + " в эффекте break_blocks!");
+                }
+
+                boolean dropItems = settings.get("drop_items").asBool(true);
+
+                List<Material> materials = new ArrayList<>();
+                if (settings.get("materials").getRaw() instanceof List<?> mList) {
+                    for (Object mObj : mList) {
+                        Material mat = Material.getMaterial(String.valueOf(mObj).toUpperCase(Locale.ROOT));
+                        if (mat != null) materials.add(mat);
+                    }
+                }
+                resultList.add(new BreakBlocksEffect(targetSelector, rx, ry, rz, materials, dropItems));
+            }
             case "damage" -> {
                 YamlMap settings = map.get("settings").asYamlMap().hasResult() ? map.get("settings").asYamlMap().getOrThrow() : new YamlMap();
                 double amount = settings.get("amount").asDouble(1.0);
@@ -174,7 +276,7 @@ public class ItemManager {
                 boolean interact = false;
                 if (settings.get("general").asYamlMap().hasResult()) {
                     YamlMap general = settings.get("general").asYamlMap().getOrThrow();
-                    rotation = general.get("camera_rotation").asBool(true);
+                    rotation = general.get("camera").asBool(true);
                     interact = general.get("interact").asBool(false);
                 }
 
@@ -206,7 +308,7 @@ public class ItemManager {
                         if (!YamlValue.wrap(sObj).asYamlMap().hasResult()) continue;
                         YamlMap actionMap = YamlValue.wrap(sObj).asYamlMap().getOrThrow();
 
-                        String actionType = actionMap.get("type").asString("").toLowerCase();
+                        String actionType = actionMap.get("type").asString("").toLowerCase(Locale.ROOT);
 
                         if (actionType.equals("give")) {
                             if (actionMap.get("list").getRaw() instanceof List<?> pList) {
@@ -214,7 +316,7 @@ public class ItemManager {
                                     if (!YamlValue.wrap(pObj).asYamlMap().hasResult()) continue;
                                     YamlMap pMap = YamlValue.wrap(pObj).asYamlMap().getOrThrow();
 
-                                    String potionName = pMap.get("potion").asString("SPEED").replace("minecraft:", "").toUpperCase();
+                                    String potionName = pMap.get("potion").asString("SPEED").replace("minecraft:", "").toUpperCase(Locale.ROOT);
                                     PotionEffectType pt = PotionEffectType.getByName(potionName);
 
                                     if (pt == null) {
@@ -230,12 +332,12 @@ public class ItemManager {
                                 }
                             }
                         } else if (actionType.equals("clear")) {
-                            String triggerType = actionMap.get("trigger").asString("all").toLowerCase();
+                            String triggerType = actionMap.get("trigger").asString("all").toLowerCase(Locale.ROOT);
                             List<PotionEffectType> specificPotions = new ArrayList<>();
 
                             if (actionMap.get("list").getRaw() instanceof List<?> cList) {
                                 for (Object cObj : cList) {
-                                    String pName = String.valueOf(cObj).replace("minecraft:", "").toUpperCase();
+                                    String pName = String.valueOf(cObj).replace("minecraft:", "").toUpperCase(Locale.ROOT);
                                     PotionEffectType pt = PotionEffectType.getByName(pName);
                                     if (pt != null) {
                                         specificPotions.add(pt);
@@ -255,13 +357,13 @@ public class ItemManager {
             }
             case "particle" -> {
                 YamlMap settings = map.get("settings").asYamlMap().hasResult() ? map.get("settings").asYamlMap().getOrThrow() : new YamlMap();
-                String particleName = settings.get("particle").asString("FLAME").toUpperCase();
+                String particleName = settings.get("particle").asString("FLAME").toUpperCase(Locale.ROOT);
 
                 Particle particle;
                 try {
                     particle = Particle.valueOf(particleName);
                 } catch (IllegalArgumentException e) {
-                    plugin.getDebugLogger().warn("Частица " + particleName + " не поддерживается! Замена на FLAME...");
+                    plugin.getDebugLogger().warn("Частица " + particleName + " не поддерживается!");
                     particle = Particle.FLAME;
                 }
 
@@ -280,7 +382,7 @@ public class ItemManager {
                 if (map.get("settings").getRaw() instanceof List<?> dList) {
                     for (Object obj : dList) {
                         YamlMap dMap = YamlValue.wrap(obj).asYamlMap().getOrThrow();
-                        String matName = dMap.get("material").asString("").toUpperCase();
+                        String matName = dMap.get("material").asString("").toUpperCase(Locale.ROOT);
 
                         Material material = Material.getMaterial(matName);
                         if (material == null) {
@@ -289,7 +391,7 @@ public class ItemManager {
                         }
 
                         TimeData time = TimeData.parse(dMap.get("time"), 20);
-                        boolean vanilla = dMap.get("vanilla_disable").asBool(true);
+                        boolean vanilla = dMap.get("vanilla").asBool(true);
 
                         List<ItemEffect> msgs = MessageParser.parse(YamlValue.wrap(dMap), targetSelector);
 
@@ -313,7 +415,7 @@ public class ItemManager {
         if (!pdc.has(idKey, PersistentDataType.STRING)) return null;
 
         String id = pdc.get(idKey, PersistentDataType.STRING);
-        return id == null ? null : registry.get(id.toLowerCase());
+        return id == null ? null : registry.get(id.toLowerCase(Locale.ROOT));
     }
 
     public Set<String> getAllIds() {
@@ -321,6 +423,6 @@ public class ItemManager {
     }
 
     public CustomItem getById(String id) {
-        return registry.get(id.toLowerCase());
+        return registry.get(id.toLowerCase(Locale.ROOT));
     }
 }

@@ -5,9 +5,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 import ru.last.lastitems.commands.MainCommand;
 import ru.last.lastitems.debug.DebugLogger;
 import ru.last.lastitems.config.*;
-import ru.last.lastitems.item.ItemManager;
+import ru.last.lastitems.item.*;
 import ru.last.lastitems.hooks.*;
-import ru.last.lastitems.utils.DirectionUtil;
+import ru.last.lastitems.listeners.*;
 import ru.last.lastitems.item.triggers.*;
 
 import java.util.Objects;
@@ -19,12 +19,12 @@ public class LastItemsFree extends JavaPlugin {
     private ItemManager itemManager;
     private DebugLogger debugLogger;
     private ConfigManager configManager;
-    private DirectionUtil directionUtil;
 
     @Override
     public void onEnable() {
         instance = this;
 
+        getLogger().info("v" + getDescription().getVersion() + " enabling...");
         configManager = new ConfigManager(this);
         configManager.loadAll();
 
@@ -44,15 +44,22 @@ public class LastItemsFree extends JavaPlugin {
         Objects.requireNonNull(getCommand("lastitems")).setTabCompleter(commandHandler);
 
         getServer().getPluginManager().registerEvents(new ClickTrigger(itemManager), this);
+        getServer().getPluginManager().registerEvents(new BlockTrigger(itemManager), this);
         getServer().getPluginManager().registerEvents(new HitTrigger(itemManager), this);
         getServer().getPluginManager().registerEvents(new ProjectileTrigger(itemManager), this);
         getServer().getPluginManager().registerEvents(new KillEntityTrigger(itemManager), this);
         getServer().getPluginManager().registerEvents(new KillPlayerTrigger(itemManager), this);
         getServer().getPluginManager().registerEvents(new SwappingTrigger(itemManager), this);
+        getServer().getPluginManager().registerEvents(new InfiniteItemListener(itemManager), this);
 
         checkPlugmanX();
 
-        getLogger().info("v" + getDescription().getVersion() + " enabled successfully!");
+        getLogger().info("enabled successfully!");
+    }
+
+    public void onDisable() {
+        getLogger().info("v" + getDescription().getVersion() + " disabling...");
+        getLogger().info("disabling successfully!");
     }
 
     private void checkPlugmanX() {
@@ -70,5 +77,4 @@ public class LastItemsFree extends JavaPlugin {
     public ItemManager getItemManager() { return itemManager; }
     public DebugLogger getDebugLogger() { return debugLogger; }
     public ConfigManager getConfigManager() { return configManager; }
-    public DirectionUtil getDirectionUtil() { return directionUtil; }
 }

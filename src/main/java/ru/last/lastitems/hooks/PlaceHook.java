@@ -11,8 +11,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import ru.last.lastitems.LastItemsFree;
-import ru.last.lastitems.item.CustomItem;
-import ru.last.lastitems.item.ItemManager;
+import ru.last.lastitems.item.*;
+
+import java.util.List;
 
 public class PlaceHook extends PlaceholderExpansion {
 
@@ -29,19 +30,13 @@ public class PlaceHook extends PlaceholderExpansion {
     }
 
     @Override
-    public @NotNull String getIdentifier() {
-        return "lastitems";
-    }
+    public @NotNull String getIdentifier() { return "lastitems"; }
 
     @Override
-    public @NotNull String getAuthor() {
-        return plugin.getDescription().getAuthors().isEmpty() ? "Last" : plugin.getDescription().getAuthors().get(0);
-    }
+    public @NotNull String getAuthor() { return plugin.getDescription().getAuthors().get(0); }
 
     @Override
-    public @NotNull String getVersion() {
-        return plugin.getDescription().getVersion();
-    }
+    public @NotNull String getVersion() { return plugin.getDescription().getVersion(); }
 
     @Override
     public boolean persist() { return true; }
@@ -78,6 +73,34 @@ public class PlaceHook extends PlaceholderExpansion {
             }
 
             return String.valueOf(count);
+        }
+
+        if (params.startsWith("cooldown_")) {
+            String data = params.substring(9);
+            String[] split = data.split(":", 2);
+
+            if (split.length != 2) return "0";
+
+            String id = split[0];
+            String format = split[1];
+
+            CustomItem item = itemManager.getById(id);
+            if (item == null) return TimeFormatter.format(0, format);
+
+            long maxCooldown = 0;
+
+            for (List<ActionNode> nodes : item.getActions().values()) {
+                for (ActionNode node : nodes) {
+                    if (node.getCooldownAction() != null) {
+                        long left = node.getCooldownAction().getRemainingTime((Player) player);
+                        if (left > maxCooldown) {
+                            maxCooldown = left;
+                        }
+                    }
+                }
+            }
+
+            return TimeFormatter.format(maxCooldown, format);
         }
 
         return null;

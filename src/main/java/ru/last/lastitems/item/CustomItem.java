@@ -34,7 +34,7 @@ public class CustomItem {
 
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            NamespacedKey idKey = new NamespacedKey(LastItemsFree.getInstance(), "item_id");
+            NamespacedKey idKey = new NamespacedKey(LastItemsFree.getInstance(), "lastitems_free");
             meta.getPersistentDataContainer().set(idKey, PersistentDataType.STRING, id);
             item.setItemMeta(meta);
         }
@@ -48,6 +48,10 @@ public class CustomItem {
         for (ActionNode node : nodes) {
             node.tryExecute(context);
         }
+    }
+
+    public Map<ActionTrigger, List<ActionNode>> getActions() {
+        return actionsMap;
     }
 
     public String getId() { return id; }
