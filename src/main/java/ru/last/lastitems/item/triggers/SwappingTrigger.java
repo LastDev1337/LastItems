@@ -9,12 +9,12 @@ import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.ItemStack;
 import ru.last.lastitems.item.ActionTrigger;
 import ru.last.lastitems.item.CustomItem;
-import ru.last.lastitems.item.ItemManager;
+import ru.last.lastitems.item.ItemRegistry;
 import ru.last.lastitems.item.TriggerContext;
 
 public class SwappingTrigger implements Listener {
-    private final ItemManager itemManager;
-    public SwappingTrigger(ItemManager itemManager) { this.itemManager = itemManager; }
+    private final ItemRegistry itemRegistry;
+    public SwappingTrigger(ItemRegistry itemRegistry) { this.itemRegistry = itemRegistry; }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onSwapHands(PlayerSwapHandItemsEvent event) {
@@ -22,14 +22,13 @@ public class SwappingTrigger implements Listener {
         ItemStack item = event.getMainHandItem();
         boolean isMainHand = true;
 
-        if (item == null || item.getType().isAir() || !item.hasItemMeta()) {
+        if (item.getType().isAir() || !item.hasItemMeta()) {
             item = event.getOffHandItem();
             isMainHand = false;
         }
+        if (item.getType().isAir() || !item.hasItemMeta()) return;
 
-        if (item == null || item.getType().isAir() || !item.hasItemMeta()) return;
-
-        CustomItem customItem = itemManager.getCustomItem(item);
+        CustomItem customItem = itemRegistry.getCustomItem(item);
         if (customItem != null) {
             customItem.executeTrigger(ActionTrigger.ON_SWAPPING, new TriggerContext(player, item, null, event));
             if (isMainHand) event.setMainHandItem(item);
@@ -41,12 +40,9 @@ public class SwappingTrigger implements Listener {
     public void onHotbarSwap(PlayerItemHeldEvent event) {
         Player player = event.getPlayer();
         ItemStack item = player.getInventory().getItem(event.getNewSlot());
-
         if (item == null || item.getType().isAir() || !item.hasItemMeta()) return;
 
-        CustomItem customItem = itemManager.getCustomItem(item);
-        if (customItem != null) {
-            customItem.executeTrigger(ActionTrigger.ON_SWAPPING, new TriggerContext(player, item, null, event));
-        }
+        CustomItem customItem = itemRegistry.getCustomItem(item);
+        if (customItem != null) customItem.executeTrigger(ActionTrigger.ON_SWAPPING, new TriggerContext(player, item, null, event));
     }
 }

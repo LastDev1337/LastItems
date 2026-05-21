@@ -23,18 +23,18 @@ public class MainConfig {
                 YamlMap levelMap = levelNode.asYamlMap().getOrThrow();
 
                 this.info = new LogLevelSettings(getSection(levelMap, "info"), "&a[Debug] &f");
-                this.warn = new LogLevelSettings(getSection(levelMap, "warn"), "&e[Warning] &e");
-                this.error = new LogLevelSettings(getSection(levelMap, "error"), "&c[Error] &c");
+                this.warn = new LogLevelSettings(getSection(levelMap, "warn"), "&e[Debug] &e");
+                this.error = new LogLevelSettings(getSection(levelMap, "error"), "&c[Debug] &c");
             } else {
                 this.info = new LogLevelSettings(new YamlMap(), "&a[Debug] &f");
-                this.warn = new LogLevelSettings(new YamlMap(), "&e[Warning] &e");
-                this.error = new LogLevelSettings(new YamlMap(), "&c[Error] &c");
+                this.warn = new LogLevelSettings(new YamlMap(), "&e[Debug] &e");
+                this.error = new LogLevelSettings(new YamlMap(), "&c[Debug] &c");
             }
         } else {
             this.debugEnable = true;
             this.info = new LogLevelSettings(new YamlMap(), "&a[Debug] &f");
-            this.warn = new LogLevelSettings(new YamlMap(), "&e[Warning] &e");
-            this.error = new LogLevelSettings(new YamlMap(), "&c[Error] &c");
+            this.warn = new LogLevelSettings(new YamlMap(), "&e[Debug] &e");
+            this.error = new LogLevelSettings(new YamlMap(), "&c[Debug] &c");
         }
 
         YamlValue limitsNode = rootMap.get("limits");

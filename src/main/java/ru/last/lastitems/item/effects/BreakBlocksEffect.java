@@ -1,5 +1,7 @@
 package ru.last.lastitems.item.effects;
 
+import dev.by1337.yaml.YamlMap;
+import dev.by1337.yaml.YamlValue;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -7,14 +9,10 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
+import ru.last.lastitems.LastItemsFree;
 import ru.last.lastitems.item.*;
 
-import java.util.Collection;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class BreakBlocksEffect implements ItemEffect {
     private final String targetSelector;
@@ -31,68 +29,77 @@ public class BreakBlocksEffect implements ItemEffect {
         this.dropItems = dropItems;
     }
 
+    public static List<ItemEffect> parse(YamlMap map, YamlValue rootNode, String targetSelector, LastItemsFree plugin) {
+        YamlMap settings = map.get("settings").asYamlMap().hasResult() ? map.get("settings").asYamlMap().getOrThrow() : new YamlMap();
+        int rx = 1, ry = 1, rz = 1;
+        String radStr = settings.get("radius").asString("1").toLowerCase(Locale.ROOT).replace(";", "x");
+        try {
+            if (radStr.contains("x")) {
+                String[] parts = radStr.split("x");
+                if (parts.length == 3) {
+                    rx = (Integer.parseInt(parts[0].trim()) - 1) / 2;
+                    ry = (Integer.parseInt(parts[1].trim()) - 1) / 2;
+                    rz = (Integer.parseInt(parts[2].trim()) - 1) / 2;
+                }
+            } else {
+                int r = Integer.parseInt(radStr.trim());
+                rx = r; ry = r; rz = r;
+            }
+        } catch (NumberFormatException e) {
+            plugin.getDebugLogger().warn("Ошибка парсинга radius в break_blocks!");
+        }
+
+        boolean dropItems = settings.get("drop_items").asBool(true);
+        List<Material> materials = new ArrayList<>();
+        if (settings.get("materials").getRaw() instanceof List<?> mList) {
+            for (Object mObj : mList) {
+                Material mat = Material.getMaterial(String.valueOf(mObj).toUpperCase(Locale.ROOT));
+                if (mat != null) materials.add(mat);
+            }
+        }
+        return List.of(new BreakBlocksEffect(targetSelector, rx, ry, rz, materials, dropItems));
+    }
+
     private BlockFace getPrimaryFace(Player player) {
         float pitch = player.getLocation().getPitch();
-        if (pitch >= 45.0f) return BlockFace.DOWN;
-        if (pitch <= -45.0f) return BlockFace.UP;
-
-        float yaw = (player.getLocation().getYaw() % 360 + 360) % 360;
-        if (yaw >= 45 && yaw < 135) return BlockFace.WEST;
-        if (yaw >= 135 && yaw < 225) return BlockFace.NORTH;
-        if (yaw >= 225 && yaw < 315) return BlockFace.EAST;
-        return BlockFace.SOUTH;
+        if (pitch <= -45) return BlockFace.UP;
+        if (pitch >= 45) return BlockFace.DOWN;
+        return player.getFacing();
     }
 
     @Override
     public boolean execute(TriggerContext context) {
-        Location center = null;
-        Player player = context.player();
-
-        if (targetSelector.equalsIgnoreCase("block") || targetSelector.isEmpty()) {
-            if (context.event() instanceof BlockBreakEvent e) {
-                center = e.getBlock().getLocation();
-            } else if (context.event() instanceof PlayerInteractEvent e && e.getClickedBlock() != null) {
-                center = e.getClickedBlock().getLocation();
-            }
-        }
-
-        if (center == null) {
-            Collection<? extends Entity> targets = TargetResolver.resolve(targetSelector, context);
-            if (targets.isEmpty()) return false;
-            center = targets.iterator().next().getLocation();
-        }
-
+        Collection<? extends Entity> targets = TargetResolver.resolve(targetSelector, context);
+        if (targets.isEmpty()) return false;
         boolean executed = false;
-        BlockFace facing = getPrimaryFace(player);
 
-        World world = center.getWorld();
-        if (world == null) return false;
-        int cx = center.getBlockX();
-        int cy = center.getBlockY();
-        int cz = center.getBlockZ();
+        for (Entity target : targets) {
+            if (!(target instanceof Player player)) continue;
+            Location center = player.getTargetBlockExact(5) != null ? Objects.requireNonNull(player.getTargetBlockExact(5)).getLocation() : player.getLocation();
+            BlockFace facing = getPrimaryFace(player);
+            World world = center.getWorld();
+            if (world == null) continue;
 
-        for (int lx = -radiusX; lx <= radiusX; lx++) {
-            for (int ly = -radiusY; ly <= radiusY; ly++) {
-                for (int lz = -radiusZ; lz <= radiusZ; lz++) {
+            int cx = center.getBlockX(), cy = center.getBlockY(), cz = center.getBlockZ();
 
-                    int worldX, worldY, worldZ;
-                    switch (facing) {
-                        case UP, DOWN -> { worldX = lx; worldZ = ly; worldY = lz; }
-                        case EAST, WEST -> { worldZ = lx; worldY = ly; worldX = lz; }
-                        default -> { worldX = lx; worldY = ly; worldZ = lz; }
-                    }
+            for (int lx = -radiusX; lx <= radiusX; lx++) {
+                for (int ly = -radiusY; ly <= radiusY; ly++) {
+                    for (int lz = -radiusZ; lz <= radiusZ; lz++) {
+                        int worldX, worldY, worldZ;
+                        switch (facing) {
+                            case UP, DOWN -> { worldX = lx; worldZ = ly; worldY = lz; }
+                            case EAST, WEST -> { worldZ = lx; worldY = ly; worldX = lz; }
+                            default -> { worldX = lx; worldY = ly; worldZ = lz; }
+                        }
+                        Block block = world.getBlockAt(cx + worldX, cy + worldY, cz + worldZ);
+                        Material type = block.getType();
+                        if (type.isAir() || type == Material.BEDROCK || type == Material.BARRIER || type == Material.END_PORTAL_FRAME) continue;
 
-                    Block block = world.getBlockAt(cx + worldX, cy + worldY, cz + worldZ);
-                    Material type = block.getType();
-
-                    if (type.isAir() || type == Material.BEDROCK || type == Material.BARRIER || type == Material.END_PORTAL_FRAME) {
-                        continue;
-                    }
-
-                    if (materials.isEmpty() || materials.contains(type)) {
-                        if (dropItems) block.breakNaturally(context.item());
-                        else block.setType(Material.AIR);
-                        executed = true;
+                        if (materials.isEmpty() || materials.contains(type)) {
+                            if (dropItems) block.breakNaturally(context.item());
+                            else block.setType(Material.AIR);
+                            executed = true;
+                        }
                     }
                 }
             }

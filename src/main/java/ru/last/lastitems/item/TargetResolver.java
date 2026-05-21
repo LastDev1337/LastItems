@@ -32,7 +32,6 @@ public final class TargetResolver {
             case "victim:entity" -> context.victim() != null && !(context.victim() instanceof Player) ? List.of(context.victim()) : List.of();
             case "victim:player" -> context.victim() instanceof Player ? List.of(context.victim()) : List.of();
             case "victim" -> context.victim() != null ? List.of(context.victim()) : List.of();
-            case "player" -> List.of(context.player());
             default -> List.of(context.player());
         };
     }

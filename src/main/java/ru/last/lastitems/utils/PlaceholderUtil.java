@@ -18,13 +18,11 @@ import org.bukkit.entity.LivingEntity;
 import ru.last.lastitems.item.TriggerContext;
 
 import java.util.Locale;
-import java.util.regex.Pattern;
 
 public final class PlaceholderUtil {
 
     private static PlaceholderResolver<ResolveData> RESOLVER;
     private static Attribute MAX_HEALTH_ATTRIBUTE;
-    private static final Pattern HEX_PATTERN = Pattern.compile("[<&]\\\\?#([A-Fa-f0-9]{6})>?");
 
     private PlaceholderUtil() {}
 

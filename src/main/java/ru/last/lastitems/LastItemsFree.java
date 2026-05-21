@@ -10,71 +10,70 @@ import ru.last.lastitems.hooks.*;
 import ru.last.lastitems.listeners.*;
 import ru.last.lastitems.item.triggers.*;
 
-import java.util.Objects;
-
 public class LastItemsFree extends JavaPlugin {
 
     private static LastItemsFree instance;
     private NamespacedKey actionCounterKey;
-    private ItemManager itemManager;
+    private ItemRegistry itemRegistry;
+    private ItemLoader itemLoader;
     private DebugLogger debugLogger;
     private ConfigManager configManager;
+    private MainCommand mainCommand;
+    private ItemDropListener itemDropListener;
 
     @Override
     public void onEnable() {
         instance = this;
-
-        getLogger().info("v" + getDescription().getVersion() + " enabling...");
         configManager = new ConfigManager(this);
         configManager.loadAll();
 
         this.debugLogger = new DebugLogger(configManager.getMainConfig());
         this.actionCounterKey = new NamespacedKey(this, "action_counter");
 
-        this.itemManager = new ItemManager(this);
-        this.itemManager.loadItems();
+        this.itemRegistry = new ItemRegistry(this);
+        this.itemLoader = new ItemLoader(this, itemRegistry);
+        this.itemLoader.loadItems();
 
         if (getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
-            PlaceHook.init(this, this.itemManager);
-            getDebugLogger().info("PlaceholderAPI hooked!");
+            PlaceHook.init(this.itemRegistry);
         }
 
-        MainCommand commandHandler = new MainCommand(this);
-        Objects.requireNonNull(getCommand("lastitems")).setExecutor(commandHandler);
-        Objects.requireNonNull(getCommand("lastitems")).setTabCompleter(commandHandler);
+        this.mainCommand = new MainCommand(this);
 
-        getServer().getPluginManager().registerEvents(new ClickTrigger(itemManager), this);
-        getServer().getPluginManager().registerEvents(new BlockTrigger(itemManager), this);
-        getServer().getPluginManager().registerEvents(new HitTrigger(itemManager), this);
-        getServer().getPluginManager().registerEvents(new ProjectileTrigger(itemManager), this);
-        getServer().getPluginManager().registerEvents(new KillEntityTrigger(itemManager), this);
-        getServer().getPluginManager().registerEvents(new KillPlayerTrigger(itemManager), this);
-        getServer().getPluginManager().registerEvents(new SwappingTrigger(itemManager), this);
-        getServer().getPluginManager().registerEvents(new InfiniteItemListener(itemManager), this);
+        this.itemDropListener = new ItemDropListener(itemRegistry);
+        getServer().getPluginManager().registerEvents(this.itemDropListener, this);
 
-        checkPlugmanX();
+        getServer().getPluginManager().registerEvents(new ClickTrigger(itemRegistry), this);
+        getServer().getPluginManager().registerEvents(new BlockTrigger(itemRegistry), this);
+        getServer().getPluginManager().registerEvents(new HitTrigger(itemRegistry), this);
+        getServer().getPluginManager().registerEvents(new ProjectileTrigger(itemRegistry), this);
+        getServer().getPluginManager().registerEvents(new KillEntityTrigger(itemRegistry), this);
+        getServer().getPluginManager().registerEvents(new KillPlayerTrigger(itemRegistry), this);
+        getServer().getPluginManager().registerEvents(new SwappingTrigger(itemRegistry), this);
+        getServer().getPluginManager().registerEvents(new InfiniteItemListener(itemRegistry), this);
 
-        getLogger().info("enabled successfully!");
+        getLogger().info("enabling successfully!");
     }
 
+    @Override
     public void onDisable() {
-        getLogger().info("v" + getDescription().getVersion() + " disabling...");
+        getLogger().info("disabling...");
+
+        if (itemDropListener != null) {
+            itemDropListener.restoreAllOnDisable();
+        }
+
+        if (mainCommand != null) {
+            mainCommand.unregister();
+        }
+
         getLogger().info("disabling successfully!");
     }
 
-    private void checkPlugmanX() {
-        if (getServer().getPluginManager().isPluginEnabled("PlugmanX") || getServer().getPluginManager().isPluginEnabled("PlugMan")) {
-            getLogger().warning("================ !!! ПРЕДУПРЕЖДЕНИЕ !!! ================");
-            getLogger().warning("На вашем сервере был найден PlugMan!");
-            getLogger().warning("Категорически не рекомендуем им пользоваться!");
-            getLogger().warning("С любовью LastDev <3");
-            getLogger().warning("================ !!! ПРЕДУПРЕЖДЕНИЕ !!! ================");
-        }
-    }
-
     public static LastItemsFree getInstance() { return instance; }
-    public NamespacedKey getActionCounterKey() { return actionCounterKey; }
-    public ItemManager getItemManager() { return itemManager; }
-    public DebugLogger getDebugLogger() { return debugLogger; }
+    public ItemRegistry getItemRegistry() { return itemRegistry; }
     public ConfigManager getConfigManager() { return configManager; }
+    public DebugLogger getDebugLogger() { return debugLogger; }
+    public NamespacedKey getActionCounterKey() { return actionCounterKey; }
+    public ItemLoader getItemLoader() { return itemLoader; }
 }

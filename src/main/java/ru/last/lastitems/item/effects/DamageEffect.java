@@ -1,20 +1,23 @@
 package ru.last.lastitems.item.effects;
 
+import dev.by1337.yaml.YamlMap;
+import dev.by1337.yaml.YamlValue;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Damageable;
 import org.bukkit.entity.Entity;
+import ru.last.lastitems.LastItemsFree;
 import ru.last.lastitems.item.ItemEffect;
 import ru.last.lastitems.item.TriggerContext;
 import ru.last.lastitems.item.TargetResolver;
 
 import java.lang.reflect.Method;
 import java.util.Collection;
+import java.util.List;
 import java.util.Locale;
 
 public class DamageEffect implements ItemEffect {
     private final String targetSelector;
     private final double amount;
-    private final String effectStr;
     private final NamespacedKey cachedDamageKey;
 
     private static boolean isModernDamageSupported = false;
@@ -33,35 +36,22 @@ public class DamageEffect implements ItemEffect {
             damageMethod = Entity.class.getMethod("damage", double.class, damageSourceClass);
             damageSourceBuilderMethod = damageSourceClass.getMethod("builder", damageTypeClass);
             damageSourceBuildMethod = damageSourceBuilderMethod.getReturnType().getMethod("build");
-
-            try {
-                // 1.20.6 - 1.21.11
-                Class<?> registryAccessClass = Class.forName("io.papermc.paper.registry.RegistryAccess");
-                Class<?> registryKeyClass = Class.forName("io.papermc.paper.registry.RegistryKey");
-                registryAccessObj = registryAccessClass.getMethod("registryAccess").invoke(null);
-                damageTypeRegistryKey = registryKeyClass.getField("DAMAGE_TYPE").get(null);
-                getRegistryMethod = registryAccessClass.getMethod("getRegistry", registryKeyClass);
-            } catch (Throwable t) {
-                // 1.20.4
-                Class<?> registryClass = Class.forName("org.bukkit.Registry");
-                legacyDamageRegistry = registryClass.getField("DAMAGE_TYPE").get(null);
-            }
             isModernDamageSupported = true;
-        } catch (Throwable ignored) {
-            // 1.16.5 - 1.20.1 ignored
-        }
+        } catch (Exception ignored) {}
     }
 
-    public DamageEffect(String targetSelector, double amount, String damageType, String effectStr) {
+    public DamageEffect(String targetSelector, double amount, String damageType, String effect) {
         this.targetSelector = targetSelector;
         this.amount = amount;
-        this.effectStr = effectStr;
+        this.cachedDamageKey = (damageType != null && !damageType.isEmpty()) ? NamespacedKey.minecraft(damageType.toLowerCase(Locale.ROOT)) : null;
+    }
 
-        if (damageType != null && !damageType.isBlank()) {
-            this.cachedDamageKey = NamespacedKey.fromString(damageType.toLowerCase(Locale.ROOT));
-        } else {
-            this.cachedDamageKey = null;
-        }
+    public static List<ItemEffect> parse(YamlMap map, YamlValue rootNode, String targetSelector, LastItemsFree plugin) {
+        YamlMap settings = map.get("settings").asYamlMap().hasResult() ? map.get("settings").asYamlMap().getOrThrow() : new YamlMap();
+        double amount = settings.get("amount").asDouble(1.0);
+        String damageType = settings.get("type").asString("");
+        String effect = settings.get("effect").asString("");
+        return List.of(new DamageEffect(targetSelector, amount, damageType, effect));
     }
 
     @Override
@@ -71,32 +61,9 @@ public class DamageEffect implements ItemEffect {
 
         for (Entity target : targets) {
             if (target instanceof Damageable d) {
-                boolean damagedWithModernAPI = false;
-
-                if (isModernDamageSupported && cachedDamageKey != null) {
-                    damagedWithModernAPI = tryModernDamageFast(d, amount, cachedDamageKey);
-                }
-
-                if (!damagedWithModernAPI) {
-                    d.damage(amount);
-                }
+                d.damage(amount);
             }
         }
         return true;
-    }
-
-    private boolean tryModernDamageFast(Damageable target, double amount, NamespacedKey key) {
-        try {
-            Object type = registryAccessObj != null ?
-                    getRegistryMethod.invoke(registryAccessObj, damageTypeRegistryKey).getClass().getMethod("get", NamespacedKey.class).invoke(getRegistryMethod.invoke(registryAccessObj, damageTypeRegistryKey), key) :
-                    legacyDamageRegistry.getClass().getMethod("get", NamespacedKey.class).invoke(legacyDamageRegistry, key);
-
-            if (type != null) {
-                Object builder = damageSourceBuilderMethod.invoke(null, type);
-                damageMethod.invoke(target, amount, damageSourceBuildMethod.invoke(builder));
-                return true;
-            }
-        } catch (Throwable ignored) {}
-        return false;
     }
 }

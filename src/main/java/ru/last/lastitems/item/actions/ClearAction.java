@@ -22,7 +22,7 @@ public class ClearAction {
         if (!enable || context.player() == null) return;
 
         ItemStack item = context.player().getInventory().getItem(slot);
-        if (item != null && !item.getType().isAir()) {
+        if (!item.getType().isAir()) {
             item.subtract(1);
         }
         effects.forEach(effect -> effect.execute(context));

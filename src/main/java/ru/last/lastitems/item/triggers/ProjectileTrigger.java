@@ -11,12 +11,12 @@ import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.inventory.ItemStack;
 import ru.last.lastitems.item.ActionTrigger;
 import ru.last.lastitems.item.CustomItem;
-import ru.last.lastitems.item.ItemManager;
+import ru.last.lastitems.item.ItemRegistry;
 import ru.last.lastitems.item.TriggerContext;
 
 public class ProjectileTrigger implements Listener {
-    private final ItemManager itemManager;
-    public ProjectileTrigger(ItemManager itemManager) { this.itemManager = itemManager; }
+    private final ItemRegistry itemRegistry;
+    public ProjectileTrigger(ItemRegistry itemRegistry) { this.itemRegistry = itemRegistry; }
 
     private ItemStack getWeapon(Projectile projectile, Player shooter) {
         return projectile instanceof Trident trident ? trident.getItemStack() : shooter.getInventory().getItemInMainHand();
@@ -25,26 +25,20 @@ public class ProjectileTrigger implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onProjectileLaunch(ProjectileLaunchEvent event) {
         if (!(event.getEntity().getShooter() instanceof Player player)) return;
-
         ItemStack item = getWeapon(event.getEntity(), player);
         if (item.getType().isAir() || !item.hasItemMeta()) return;
 
-        CustomItem customItem = itemManager.getCustomItem(item);
-        if (customItem != null) {
-            customItem.executeTrigger(ActionTrigger.ON_PROJECTILE_THROW, new TriggerContext(player, item, null, event));
-        }
+        CustomItem customItem = itemRegistry.getCustomItem(item);
+        if (customItem != null) customItem.executeTrigger(ActionTrigger.ON_PROJECTILE_THROW, new TriggerContext(player, item, null, event));
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onProjectileHit(ProjectileHitEvent event) {
         if (!(event.getEntity().getShooter() instanceof Player player)) return;
-
         ItemStack item = getWeapon(event.getEntity(), player);
         if (item.getType().isAir() || !item.hasItemMeta()) return;
 
-        CustomItem customItem = itemManager.getCustomItem(item);
-        if (customItem != null) {
-            customItem.executeTrigger(ActionTrigger.ON_PROJECTILE_IMPACT, new TriggerContext(player, item, event.getHitEntity(), event));
-        }
+        CustomItem customItem = itemRegistry.getCustomItem(item);
+        if (customItem != null) customItem.executeTrigger(ActionTrigger.ON_PROJECTILE_IMPACT, new TriggerContext(player, item, event.getHitEntity(), event));
     }
 }

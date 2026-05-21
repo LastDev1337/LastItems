@@ -1,7 +1,11 @@
 package ru.last.lastitems.item.effects;
 
+import dev.by1337.yaml.YamlMap;
+import dev.by1337.yaml.YamlValue;
+import dev.by1337.yaml.codec.YamlCodec;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
+import ru.last.lastitems.LastItemsFree;
 import ru.last.lastitems.item.ItemEffect;
 import ru.last.lastitems.item.TriggerContext;
 import ru.last.lastitems.utils.PlaceholderUtil;
@@ -24,10 +28,15 @@ public class ConsoleCommandEffect implements ItemEffect {
         this.defaultCommand = defaultCommand;
     }
 
+    public static List<ItemEffect> parse(YamlMap map, YamlValue rootNode, String targetSelector, LastItemsFree plugin) {
+        YamlMap settings = map.get("settings").asYamlMap().hasResult() ? map.get("settings").asYamlMap().getOrThrow() : new YamlMap();
+        List<String> commands = settings.get("commands").decode(YamlCodec.STRING.listOf()).orDefault(List.of());
+        return List.of(new ConsoleCommandEffect(targetSelector, "random", commands, ""));
+    }
+
     @Override
     public boolean execute(TriggerContext context) {
         String commandToRun;
-
         if (selectionType.equalsIgnoreCase("random") && !randomCommands.isEmpty()) {
             commandToRun = randomCommands.get(ThreadLocalRandom.current().nextInt(randomCommands.size()));
         } else {
@@ -35,7 +44,6 @@ public class ConsoleCommandEffect implements ItemEffect {
         }
 
         if (commandToRun == null || commandToRun.isEmpty()) return false;
-
         Collection<? extends Entity> targets = TargetResolver.resolve(targetSelector, context);
         if (targets.isEmpty()) return false;
 

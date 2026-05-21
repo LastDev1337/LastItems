@@ -4,8 +4,7 @@ plugins {
     id("com.gradleup.shadow") version "9.3.1"
 }
 
-group = "ru.last.lastitems"
-version = "0.2.1"
+version = "0.2.2"
 
 repositories {
     mavenCentral()
@@ -18,15 +17,13 @@ repositories {
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.20.4-R0.1-SNAPSHOT")
-    compileOnly("dev.by1337.core:BLibV2:1.6") // BLibV2
-    implementation("dev.by1337.item:ConfigurableItems:1.3") // ConfigurableItems (из BLibV2 библиотеки)
-    implementation("dev.by1337.yaml:byaml-bukkit:1.2.1") // BYaml (из BLibV2 библиотеки)
+    compileOnly("dev.by1337.core:BLibV2:1.7.3") // BLibV2
     compileOnly("me.clip:placeholderapi:2.12.2") // PlaceholderAPI
-    implementation("org.bstats:bstats-bukkit:3.1.0") // bStats (для анонимной статистики)
+    implementation("org.bstats:bstats-bukkit:3.2.1") // bStats
 }
 
 java {
-    toolchain.languageVersion = JavaLanguageVersion.of(17)
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
 }
 
 tasks {

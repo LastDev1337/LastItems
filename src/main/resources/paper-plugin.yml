@@ -1,11 +1,17 @@
 name: LastItems
-version: $version
+version: '${version}'
 
-depend: [ BLib ]
-softdepend: [ PlaceholderAPI ]
+dependencies:
+  server:
+    BLib:
+      load: BEFORE
+      required: true
+    PlaceholderAPI:
+      load: BEFORE
+      required: false
 
 main: ru.last.lastitems.LastItemsFree
-api-version: "1.16"
+api-version: '1.19'
 author: Last
 
 description: "Плагин для кастомных предметов на 1.16.5 - 1.21.11"

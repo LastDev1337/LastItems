@@ -19,13 +19,15 @@ public class CustomItem {
     private final ItemStack baseItem;
     private final int defaultAmount;
     private final Map<ActionTrigger, List<ActionNode>> actionsMap;
+    private final NoDropSettings noDropSettings;
 
-    public CustomItem(String id, ItemModel itemModel, ItemStack baseItem, int defaultAmount, Map<ActionTrigger, List<ActionNode>> actionsMap) {
+    public CustomItem(String id, ItemModel itemModel, ItemStack baseItem, int defaultAmount, Map<ActionTrigger, List<ActionNode>> actionsMap, NoDropSettings noDropSettings) {
         this.id = id;
         this.itemModel = itemModel;
         this.baseItem = baseItem;
         this.defaultAmount = defaultAmount;
         this.actionsMap = actionsMap;
+        this.noDropSettings = noDropSettings;
     }
 
     public ItemStack createFor(Player player) {
@@ -55,5 +57,6 @@ public class CustomItem {
     }
 
     public String getId() { return id; }
-    public ItemStack getBaseItem() { return baseItem; }
+
+    public NoDropSettings getNoDropSettings() { return noDropSettings; }
 }

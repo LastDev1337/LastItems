@@ -1,5 +1,7 @@
 package ru.last.lastitems.item.effects;
 
+import dev.by1337.yaml.YamlMap;
+import dev.by1337.yaml.YamlValue;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
@@ -13,9 +15,11 @@ import ru.last.lastitems.LastItemsFree;
 import ru.last.lastitems.item.ItemEffect;
 import ru.last.lastitems.item.TriggerContext;
 import ru.last.lastitems.item.TargetResolver;
+import ru.last.lastitems.utils.TimeData;
 
 import java.lang.reflect.Method;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,18 +30,14 @@ public class FreezeEffect implements ItemEffect {
     private final boolean allowRotation;
     private final boolean allowInteract;
 
-    private static Method getFreezeTicksMethod;
     private static Method setFreezeTicksMethod;
     private static boolean modernApiCached;
 
     static {
         try {
-            getFreezeTicksMethod = Entity.class.getMethod("getFreezeTicks");
             setFreezeTicksMethod = Entity.class.getMethod("setFreezeTicks", int.class);
             modernApiCached = true;
-        } catch (NoSuchMethodException ignored) {
-            modernApiCached = false; // Fallback for 1.16.5
-        }
+        } catch (NoSuchMethodException ignored) {}
     }
 
     public FreezeEffect(String targetSelector, int ticks, boolean allowRotation, boolean allowInteract) {
@@ -45,11 +45,19 @@ public class FreezeEffect implements ItemEffect {
         this.ticks = ticks;
         this.allowRotation = allowRotation;
         this.allowInteract = allowInteract;
+        FreezeListener.init(LastItemsFree.getInstance());
+    }
 
-        // 1.16.5 method
-        if (!modernApiCached) {
-            LegacyFreezeManager.init(LastItemsFree.getInstance());
+    public static List<ItemEffect> parse(YamlMap map, YamlValue rootNode, String targetSelector, LastItemsFree plugin) {
+        YamlMap settings = map.get("settings").asYamlMap().hasResult() ? map.get("settings").asYamlMap().getOrThrow() : new YamlMap();
+        TimeData time = TimeData.parse(settings.get("time"), 100);
+        boolean rotation = true, interact = false;
+        if (settings.get("general").asYamlMap().hasResult()) {
+            YamlMap general = settings.get("general").asYamlMap().getOrThrow();
+            rotation = general.get("camera").asBool(true);
+            interact = general.get("interact").asBool(false);
         }
+        return List.of(new FreezeEffect(targetSelector, time.ticks(), rotation, interact));
     }
 
     @Override
@@ -59,37 +67,25 @@ public class FreezeEffect implements ItemEffect {
 
         for (Entity target : targets) {
             if (modernApiCached) {
-                try {
-                    int current = (int) getFreezeTicksMethod.invoke(target);
-                    setFreezeTicksMethod.invoke(target, Math.max(current, ticks));
-                } catch (Exception ignored) {}
-            } else {
-                LegacyFreezeManager.freeze(target, ticks, allowRotation, allowInteract);
+                try { setFreezeTicksMethod.invoke(target, ticks); } catch (Exception ignored) {}
+            }
+            if (target instanceof Player player) {
+                long expireTime = System.currentTimeMillis() + (ticks * 50L);
+                FreezeListener.frozenEntities.put(player.getUniqueId(), new FreezeListener.FreezeData(expireTime, allowRotation, allowInteract));
             }
         }
         return true;
     }
 
-    public static class LegacyFreezeManager implements Listener {
+    public static class FreezeListener implements Listener {
+        static final Map<UUID, FreezeData> frozenEntities = new ConcurrentHashMap<>();
         private static boolean initialized = false;
-        private static final Map<UUID, FreezeData> frozenEntities = new ConcurrentHashMap<>();
 
         public static void init(JavaPlugin plugin) {
             if (!initialized) {
-                Bukkit.getPluginManager().registerEvents(new LegacyFreezeManager(), plugin);
-
-                Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
-                    long now = System.currentTimeMillis();
-                    frozenEntities.entrySet().removeIf(entry -> entry.getValue().expireTime() < now);
-                }, 20L, 20L);
-
+                Bukkit.getPluginManager().registerEvents(new FreezeListener(), plugin);
                 initialized = true;
             }
-        }
-
-        public static void freeze(Entity entity, int ticks, boolean allowRotation, boolean allowInteract) {
-            long expire = System.currentTimeMillis() + (ticks * 50L);
-            frozenEntities.put(entity.getUniqueId(), new FreezeData(expire, allowRotation, allowInteract));
         }
 
         @EventHandler
@@ -115,8 +111,7 @@ public class FreezeEffect implements ItemEffect {
                 } else {
                     event.setCancelled(true);
                 }
-            }
-            else if (!data.allowRotation() && (from.getYaw() != to.getYaw() || from.getPitch() != to.getPitch())) {
+            } else if (!data.allowRotation() && (from.getYaw() != to.getYaw() || from.getPitch() != to.getPitch())) {
                 event.setCancelled(true);
             }
         }
@@ -124,13 +119,11 @@ public class FreezeEffect implements ItemEffect {
         @EventHandler
         public void onInteract(PlayerInteractEvent event) {
             FreezeData data = frozenEntities.get(event.getPlayer().getUniqueId());
-            if (data != null && System.currentTimeMillis() < data.expireTime()) {
-                if (!data.allowInteract()) {
-                    event.setCancelled(true);
-                }
+            if (data != null && System.currentTimeMillis() < data.expireTime() && !data.allowInteract()) {
+                event.setCancelled(true);
             }
         }
 
-        private record FreezeData(long expireTime, boolean allowRotation, boolean allowInteract) {}
+        record FreezeData(long expireTime, boolean allowRotation, boolean allowInteract) {}
     }
 }

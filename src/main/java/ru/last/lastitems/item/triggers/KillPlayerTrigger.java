@@ -6,14 +6,11 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.inventory.ItemStack;
-import ru.last.lastitems.item.ActionTrigger;
-import ru.last.lastitems.item.CustomItem;
-import ru.last.lastitems.item.ItemManager;
-import ru.last.lastitems.item.TriggerContext;
+import ru.last.lastitems.item.*;
 
 public class KillPlayerTrigger implements Listener {
-    private final ItemManager itemManager;
-    public KillPlayerTrigger(ItemManager itemManager) { this.itemManager = itemManager; }
+    private final ItemRegistry itemRegistry;
+    public KillPlayerTrigger(ItemRegistry itemManager) { this.itemRegistry = itemManager; }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerDeath(PlayerDeathEvent event) {
@@ -24,7 +21,7 @@ public class KillPlayerTrigger implements Listener {
 
         if (item.getType().isAir() || !item.hasItemMeta()) return;
 
-        CustomItem customItem = itemManager.getCustomItem(item);
+        CustomItem customItem = itemRegistry.getCustomItem(item);
         if (customItem != null) {
             customItem.executeTrigger(ActionTrigger.ON_KILL_PLAYER, new TriggerContext(player, item, event.getEntity(), event));
         }

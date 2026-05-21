@@ -1,253 +1,247 @@
 package ru.last.lastitems.commands;
 
 import dev.by1337.cmd.Command;
-import dev.by1337.cmd.CommandReader;
-import dev.by1337.cmd.CompiledCommand;
-import dev.by1337.cmd.SuggestionsList;
-import dev.by1337.cmd.CommandMsgError;
+import dev.by1337.core.command.bcmd.CommandWrapper;
 
 import org.bukkit.Bukkit;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import ru.last.lastitems.LastItemsFree;
-import ru.last.lastitems.config.models.*;
 import ru.last.lastitems.item.CustomItem;
 import ru.last.lastitems.item.TriggerContext;
 import ru.last.lastitems.utils.PlaceholderUtil;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
-public class MainCommand implements CommandExecutor, TabCompleter {
+public class MainCommand {
     private final LastItemsFree plugin;
-    private final Command<CommandSender> rootCommand;
+    private final CommandWrapper wrapper;
 
     public MainCommand(LastItemsFree plugin) {
         this.plugin = plugin;
-        this.rootCommand = buildCommandTree();
+
+        Command<CommandSender> root = buildCommandTree();
+        wrapper = new CommandWrapper(root, plugin);
+        wrapper.setAliases(List.of("litems", "items"));
+        wrapper.register();
     }
 
-    private void sendMsg(CommandSender sender, @Nullable Player target, String text) {
-        if (target != null) {
-            text = PlaceholderUtil.replace(text, new TriggerContext(target, null, null, null, null), target);
-        }
-        sender.sendMessage(PlaceholderUtil.color(text));
-    }
-
-    private void sendError(CommandSender sender, String text) {
-        sendMsg(sender, null, "<red>" + text + "</red>");
+    public void unregister() {
+        wrapper.close();
     }
 
     private Command<CommandSender> buildCommandTree() {
-        Command<CommandSender> root = new Command<>("lastitems");
+        Command<CommandSender> main = new Command<>("lastitems");
 
-        root.executor((sender, args) -> sendMsg(sender, null, plugin.getConfigManager().getMessages().getGeneral().getUsage()
-                .replace("%command%", "lastitems")
-                .replace("%args%", "give|take|giveall|list|reload")));
+        main.requires(sender -> {
+            if (!sender.hasPermission("lastitems.admin")) {
+                sendError(sender, plugin.getConfigManager().getMessages().getGeneral().getNoPermission());
+                return false;
+            }
+            return true;
+        });
 
-        ArgSuggest itemArg = new ArgSuggest("item", () -> new ArrayList<>(plugin.getItemManager().getAllIds()));
-        ArgSuggest amountArg = new ArgSuggest("amount", () -> List.of("1", "16", "32", "64"));
-        ArgSuggest playerArg = new ArgSuggest("player", () -> Bukkit.getOnlinePlayers().stream().map(Player::getName).toList());
-        ArgSuggest hideMsgArg = new ArgSuggest("hideMSG", () -> List.of("true", "false"));
+        main.executor(sender -> sendUsage(sender, ""));
 
-        Command<CommandSender> give = new Command<>("give");
-        give.requires(sender -> sender.hasPermission("lastitems.give"))
-                .argument(itemArg).argument(amountArg).argument(playerArg).argument(hideMsgArg)
-                .executor((sender, args) -> {
-                    MessagesConfig.Give msgGive = plugin.getConfigManager().getMessages().getGive();
-                    String itemId = (String) args.get("item");
-
+        Command<CommandSender> giveCmd = new Command<>("give");
+        giveCmd.executor(
+                new ArgSuggest("id", () -> new ArrayList<>(plugin.getItemRegistry().getAllIds())),
+                new ArgSuggest("amount", () -> List.of("1", "16", "32", "64")),
+                new ArgSuggest("player", () -> Bukkit.getOnlinePlayers().stream().map(Player::getName).collect(Collectors.toList())),
+                new ArgSuggest("hideMSG", () -> List.of("true", "false")),
+                (sender, itemId, amountStr, playerName, hideMsgStr) -> {
                     if (itemId == null) {
-                        sendError(sender, "Укажите предмет!");
+                        sendUsage(sender, "give <id> [amount] [player] [hideMSG]");
                         return;
                     }
 
-                    CustomItem customItem = plugin.getItemManager().getById(itemId);
-                    if (customItem == null) {
-                        sendMsg(sender, null, msgGive.getError().getItemNotFound().replace("%id%", itemId));
+                    CustomItem cItem = plugin.getItemRegistry().getById(itemId);
+                    if (cItem == null) {
+                        sendError(sender, plugin.getConfigManager().getMessages().getGive().getError().getItemNotFound(), "%id%", itemId);
                         return;
                     }
 
-                    int amount = 1;
-                    String amountStr = (String) args.get("amount");
-                    if (amountStr != null) {
-                        try { amount = Integer.parseInt(amountStr); }
-                        catch (NumberFormatException e) { sendMsg(sender, null, msgGive.getError().getValueNotNumber()); return; }
-                    }
+                    int amount = parseAmount(sender, amountStr, plugin.getConfigManager().getMessages().getGive().getError().getValueNotNumber());
+                    if (amount < 1) return;
 
                     int limit = plugin.getConfigManager().getMainConfig().getLimitGive();
                     if (amount > limit) {
-                        sendMsg(sender, null, msgGive.getError().getBigValue().replace("%max-value%", String.valueOf(limit)));
+                        sendError(sender, plugin.getConfigManager().getMessages().getGive().getError().getBigValue(), "%max-value%", String.valueOf(limit));
                         return;
                     }
 
-                    Player target = getTarget(sender, (String) args.get("player"));
+                    Player target = findTarget(sender, playerName, plugin.getConfigManager().getMessages().getGive().getError().getPlayerNotFound());
                     if (target == null) return;
 
-                    boolean hideMsg = "true".equalsIgnoreCase((String) args.get("hideMSG"));
+                    boolean hide = hideMsgStr != null && hideMsgStr.equalsIgnoreCase("true");
 
-                    ItemStack itemToGive = customItem.createFor(target);
-                    itemToGive.setAmount(amount);
-                    target.getInventory().addItem(itemToGive);
+                    ItemStack itemStack = cItem.createFor(target);
+                    itemStack.setAmount(amount);
+                    target.getInventory().addItem(itemStack);
 
-                    if (!hideMsg) {
-                        String msg = sender.equals(target) ? msgGive.getSuccess() : msgGive.getSuccessOther();
-                        sendMsg(sender, target, msg.replace("%value%", String.valueOf(amount)).replace("%name%", itemId));
+                    if (!sender.equals(target)) {
+                        sendMsg(sender, target, plugin.getConfigManager().getMessages().getGive().getSuccessOther()
+                                .replace("%name%", itemId)
+                                .replace("%value%", String.valueOf(amount))
+                                .replace("%player_name%", target.getName())
+                                .replace("%player%", target.getName()));
                     }
-                });
 
-        Command<CommandSender> take = new Command<>("take");
-        take.requires(sender -> sender.hasPermission("lastitems.take"))
-                .argument(itemArg).argument(amountArg).argument(playerArg).argument(hideMsgArg)
-                .executor((sender, args) -> {
-                    MessagesConfig.Take msgTake = plugin.getConfigManager().getMessages().getTake();
-                    String itemId = (String) args.get("item");
-
-                    if (itemId == null) { sendError(sender, "Укажите предмет!"); return; }
-
-                    int amount = 1;
-                    String amountStr = (String) args.get("amount");
-                    if (amountStr != null) {
-                        try { amount = Integer.parseInt(amountStr); }
-                        catch (NumberFormatException e) { sendMsg(sender, null, msgTake.getError().getValueNotNumber()); return; }
+                    if (!hide) {
+                        sendMsg(target, target, plugin.getConfigManager().getMessages().getGive().getSuccess()
+                                .replace("%name%", itemId)
+                                .replace("%value%", String.valueOf(amount)));
                     }
+                }
+        );
+
+        Command<CommandSender> giveAllCmd = new Command<>("giveall");
+        giveAllCmd.executor(
+                new ArgSuggest("player", () -> Bukkit.getOnlinePlayers().stream().map(Player::getName).collect(Collectors.toList())),
+                (sender, playerName) -> {
+                    Player target = findTarget(sender, playerName, plugin.getConfigManager().getMessages().getGive().getError().getPlayerNotFound());
+                    if (target == null) return;
+
+                    for (String id : plugin.getItemRegistry().getAllIds()) {
+                        CustomItem ci = plugin.getItemRegistry().getById(id);
+                        if (ci != null) target.getInventory().addItem(ci.createFor(target));
+                    }
+                    sendMsg(sender, target, "<green>Вы выдали все предметы игроку %player_name%".replace("%player_name%", target.getName()));
+                }
+        );
+
+        Command<CommandSender> takeCmd = new Command<>("take");
+        takeCmd.executor(
+                new ArgSuggest("id", () -> new ArrayList<>(plugin.getItemRegistry().getAllIds())),
+                new ArgSuggest("amount", () -> List.of("1", "16", "32", "64")),
+                new ArgSuggest("player", () -> Bukkit.getOnlinePlayers().stream().map(Player::getName).collect(Collectors.toList())),
+                new ArgSuggest("hideMSG", () -> List.of("true", "false")),
+                (sender, itemId, amountStr, playerName, hideMsgStr) -> {
+                    if (itemId == null) {
+                        sendUsage(sender, "take <id> [amount] [player] [hideMSG]");
+                        return;
+                    }
+
+                    CustomItem cItem = plugin.getItemRegistry().getById(itemId);
+                    if (cItem == null) {
+                        sendError(sender, plugin.getConfigManager().getMessages().getTake().getError().getItemNotFound(), "%id%", itemId);
+                        return;
+                    }
+
+                    int amount = parseAmount(sender, amountStr, plugin.getConfigManager().getMessages().getTake().getError().getValueNotNumber());
+                    if (amount < 1) return;
 
                     int limit = plugin.getConfigManager().getMainConfig().getLimitTake();
                     if (amount > limit) {
-                        sendMsg(sender, null, msgTake.getError().getBigValue().replace("%max-value%", String.valueOf(limit)));
+                        sendError(sender, plugin.getConfigManager().getMessages().getTake().getError().getBigValue(), "%max-value%", String.valueOf(limit));
                         return;
                     }
 
-                    Player target = getTarget(sender, (String) args.get("player"));
+                    Player target = findTarget(sender, playerName, plugin.getConfigManager().getMessages().getTake().getError().getPlayerNotFound());
                     if (target == null) return;
 
-                    boolean hideMsg = "true".equalsIgnoreCase((String) args.get("hideMSG"));
+                    boolean hide = hideMsgStr != null && hideMsgStr.equalsIgnoreCase("true");
                     int removed = removeItems(target, itemId, amount);
 
-                    if (!hideMsg) {
-                        String msg = sender.equals(target) ? msgTake.getSuccess() : msgTake.getSuccessOther();
-                        sendMsg(sender, target, msg.replace("%value%", String.valueOf(removed)).replace("%name%", itemId));
-                    }
-                });
-
-        Command<CommandSender> giveall = new Command<>("giveall");
-        giveall.requires(sender -> sender.hasPermission("lastitems.giveall"))
-                .argument(playerArg)
-                .executor((sender, args) -> {
-                    Player target = getTarget(sender, (String) args.get("player"));
-                    if (target == null) return;
-
-                    int count = 0;
-                    for (String id : plugin.getItemManager().getAllIds()) {
-                        CustomItem ci = plugin.getItemManager().getById(id);
-                        if (ci != null) {
-                            target.getInventory().addItem(ci.createFor(target));
-                            count++;
-                        }
-                    }
-                    sendMsg(sender, target, "<green>Выдано " + count + " различных предметов игроку %player_name%!</green>");
-                });
-
-        Command<CommandSender> list = new Command<>("list");
-        list.requires(sender -> sender.hasPermission("lastitems.list"))
-                .executor((sender, args) -> {
-                    MessagesConfig.ListCmd msgList = plugin.getConfigManager().getMessages().getList();
-                    var ids = plugin.getItemManager().getAllIds();
-
-                    if (ids.isEmpty()) {
-                        sendMsg(sender, null, msgList.getNoItems());
-                        return;
+                    if (!sender.equals(target)) {
+                        sendMsg(sender, target, plugin.getConfigManager().getMessages().getTake().getSuccessOther()
+                                .replace("%name%", itemId)
+                                .replace("%value%", String.valueOf(removed))
+                                .replace("%player_name%", target.getName())
+                                .replace("%player%", target.getName()));
                     }
 
-                    sendMsg(sender, null, msgList.getTitle().replace("%count%", String.valueOf(ids.size())));
-                    for (String id : ids) {
-                        CustomItem item = plugin.getItemManager().getById(id);
-                        if (item != null) {
-                            String name = id;
-
-                            if (item.getBaseItem().hasItemMeta() && item.getBaseItem().getItemMeta().hasDisplayName()) {
-                                name = item.getBaseItem().getItemMeta().getDisplayName();
-                            }
-                            sendMsg(sender, null, msgList.getItem().replace("%id%", id).replace("%name%", name));
-                        }
+                    if (!hide) {
+                        sendMsg(target, target, plugin.getConfigManager().getMessages().getTake().getSuccess()
+                                .replace("%name%", itemId)
+                                .replace("%value%", String.valueOf(removed)));
                     }
-                });
+                }
+        );
 
-        Command<CommandSender> reload = new Command<>("reload");
-        reload.requires(sender -> sender.hasPermission("lastitems.reload"))
-                .executor((sender, args) -> executeReload(sender));
-
-        Command<CommandSender> rl = new Command<>("rl");
-        rl.requires(sender -> sender.hasPermission("lastitems.reload"))
-                .executor((sender, args) -> executeReload(sender));
-
-        root.sub(give).sub(take).sub(giveall).sub(list).sub(reload).sub(rl);
-        return root;
-    }
-
-    @Override
-    public boolean onCommand(@NotNull CommandSender sender, @NotNull org.bukkit.command.Command command, @NotNull String label, @NotNull String [] args) {
-        String commandString = String.join(" ", args);
-
-        try {
-            CompiledCommand<CommandSender> compiled = rootCommand.compile(new CommandReader(commandString));
-            if (compiled != null) {
-                compiled.execute(sender);
-            } else {
-                sendError(sender, "Команда не найдена или неверный синтаксис!");
+        Command<CommandSender> listCmd = new Command<>("list");
+        listCmd.executor(sender -> {
+            var ids = plugin.getItemRegistry().getAllIds();
+            if (ids.isEmpty()) {
+                sendMsg(sender, null, plugin.getConfigManager().getMessages().getList().getNoItems());
+                return;
             }
-        } catch (CommandMsgError e) {
-            sendError(sender, e.getMessage());
-        } catch (Exception e) {
-            sendError(sender, "Произошла внутренняя ошибка. Проверьте консоль.");
-            plugin.getDebugLogger().error("Ошибка при выполнении команды!", e);
-        }
-        return true;
+            sendMsg(sender, null, plugin.getConfigManager().getMessages().getList().getTitle());
+            for (String id : ids) {
+                sendMsg(sender, null, plugin.getConfigManager().getMessages().getList().getItem().replace("%id%", id));
+            }
+        });
+
+        Command<CommandSender> reloadCmd = new Command<>("reload");
+        reloadCmd.alias("rl");
+        reloadCmd.executor(sender -> {
+            long start = System.currentTimeMillis();
+            try {
+                plugin.getConfigManager().loadAll();
+                plugin.getItemLoader().loadItems();
+                long time = System.currentTimeMillis() - start;
+
+                String msg = plugin.getConfigManager().getMessages().getGeneral().getReloadSuccess().replace("%time%", String.valueOf(time));
+                sendMsg(sender, null, msg);
+            } catch (Exception e) {
+                sendMsg(sender, null, plugin.getConfigManager().getMessages().getGeneral().getReloadError());
+                plugin.getDebugLogger().error("Reload error", e);
+            }
+        });
+
+        main.sub(giveCmd).sub(giveAllCmd).sub(takeCmd).sub(listCmd).sub(reloadCmd);
+        return main;
     }
 
-    @Override
-    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull org.bukkit.command.Command command, @NotNull String label, @NotNull String[] args) {
-        String commandString = String.join(" ", args);
-
+    private int parseAmount(CommandSender sender, String val, String errorMessage) {
+        if (val == null) return 1;
         try {
-            SuggestionsList suggestions = rootCommand.suggest(sender, new CommandReader(commandString));
-            return suggestions.toList();
-        } catch (Exception e) {
-            return List.of();
+            return Integer.parseInt(val);
+        } catch (NumberFormatException e) {
+            sendError(sender, errorMessage);
+            return -1;
         }
     }
 
-    private void executeReload(CommandSender sender) {
-        long start = System.currentTimeMillis();
-        try {
-            plugin.getConfigManager().loadAll();
-            plugin.getItemManager().loadItems();
-            long time = System.currentTimeMillis() - start;
-            sendMsg(sender, null, plugin.getConfigManager().getMessages().getGeneral().getReloadSuccess().replace("%time%", String.valueOf(time)));
-        } catch (Exception e) {
-            sendMsg(sender, null, plugin.getConfigManager().getMessages().getGeneral().getReloadError());
-            plugin.getDebugLogger().error("Ошибка при перезагрузке", e);
-        }
-    }
-
-    private Player getTarget(CommandSender sender, String playerName) {
-        if (playerName != null) {
-            Player target = Bukkit.getPlayer(playerName);
-            if (target == null) sendMsg(sender, null, plugin.getConfigManager().getMessages().getGive().getError().getPlayerNotFound().replace("%player%", playerName));
-            return target;
-        } else if (sender instanceof Player p) {
+    private Player findTarget(CommandSender sender, String name, String errorMessage) {
+        if (name != null) {
+            Player p = Bukkit.getPlayer(name);
+            if (p == null) sendError(sender, errorMessage, "%player%", name);
             return p;
-        } else {
-            sendError(sender, plugin.getConfigManager().getMessages().getGeneral().getConsolePlayerRequired());
-            return null;
         }
+        if (sender instanceof Player p) return p;
+        sendError(sender, plugin.getConfigManager().getMessages().getGeneral().getConsolePlayerRequired());
+        return null;
+    }
+
+    private void sendUsage(CommandSender sender, String args) {
+        String msg = plugin.getConfigManager().getMessages().getGeneral().getUsage()
+                .replace("%command%", "lastitems")
+                .replace("%args%", args.isEmpty() ? "give|giveall|take|list|reload" : args);
+        sender.sendMessage(PlaceholderUtil.colorString(msg));
+    }
+
+    private void sendMsg(CommandSender sender, @Nullable Player target, String text) {
+        if (text == null || text.isEmpty()) return;
+        Player cp = target != null ? target : (sender instanceof Player p ? p : null);
+        String parsed = PlaceholderUtil.replace(text, new TriggerContext(cp, null, null, null), cp);
+        sender.sendMessage(PlaceholderUtil.colorString(parsed));
+    }
+
+    private void sendError(CommandSender sender, String text, String... replacements) {
+        if (text == null || text.isEmpty()) return;
+        String res = text;
+        for (int i = 0; i < replacements.length; i += 2) {
+            if (i + 1 < replacements.length) {
+                res = res.replace(replacements[i], replacements[i + 1]);
+            }
+        }
+        sendMsg(sender, null, res);
     }
 
     private int removeItems(Player target, String itemId, int amount) {
@@ -256,15 +250,14 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         for (int i = 0; i < contents.length; i++) {
             ItemStack item = contents[i];
             if (item == null || item.getType().isAir()) continue;
-
-            CustomItem customItem = plugin.getItemManager().getCustomItem(item);
-            if (customItem != null && customItem.getId().equalsIgnoreCase(itemId)) {
-                int currentAmount = item.getAmount();
-                if (currentAmount <= amount - removed) {
-                    removed += currentAmount;
+            CustomItem ci = plugin.getItemRegistry().getCustomItem(item);
+            if (ci != null && ci.getId().equalsIgnoreCase(itemId)) {
+                int current = item.getAmount();
+                if (current <= amount - removed) {
+                    removed += current;
                     target.getInventory().setItem(i, null);
                 } else {
-                    item.setAmount(currentAmount - (amount - removed));
+                    item.setAmount(current - (amount - removed));
                     removed = amount;
                     break;
                 }

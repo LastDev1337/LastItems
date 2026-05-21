@@ -32,8 +32,7 @@ public class VanillaAction {
 
         Event event = (Event) context.event();
 
-        if (event != null && event instanceof Cancellable) {
-            Cancellable cancellableEvent = (Cancellable) event;
+        if (event instanceof Cancellable cancellableEvent) {
             String currentEventName = event.getClass().getSimpleName().toLowerCase()
                     .replace("_", "").replace("event", "");
 
