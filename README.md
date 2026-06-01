@@ -1,1 +1,1 @@
-Wiki -> https://wiki.lastdev.space/lastitems
+URL Wiki: https://wiki.laststudio.space/lastitems
