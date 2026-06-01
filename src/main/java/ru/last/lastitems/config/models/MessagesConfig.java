@@ -2,6 +2,9 @@ package ru.last.lastitems.config.models;
 
 import dev.by1337.yaml.YamlMap;
 import dev.by1337.yaml.YamlValue;
+import ru.last.lastitems.LastItemsFree;
+import ru.last.lastitems.item.actions.EffectParser;
+import ru.last.lastitems.utils.Message;
 
 public class MessagesConfig {
     private final General general;
@@ -10,10 +13,11 @@ public class MessagesConfig {
     private final ListCmd list;
 
     public MessagesConfig(YamlMap rootMap) {
-        this.general = new General(getSection(rootMap, "general"));
-        this.give = new Give(getSection(rootMap, "give"));
-        this.take = new Take(getSection(rootMap, "take"));
-        this.list = new ListCmd(getSection(rootMap, "list"));
+        LastItemsFree plugin = LastItemsFree.getInstance();
+        this.general = new General(getSection(rootMap, "general"), plugin);
+        this.give = new Give(getSection(rootMap, "give"), plugin);
+        this.take = new Take(getSection(rootMap, "take"), plugin);
+        this.list = new ListCmd(getSection(rootMap, "list"), plugin);
     }
 
     private static YamlMap getSection(YamlMap map, String key) {
@@ -27,93 +31,99 @@ public class MessagesConfig {
     public ListCmd getList() { return list; }
 
     public static class General {
-        private final String usage;
-        private final String noPermission;
-        private final String consolePlayerRequired;
-        private final String reloadSuccess;
-        private final String reloadError;
+        private final Message usage;
+        private final Message noPermission;
+        private final Message consolePlayerRequired;
+        private final Message reloadSuccess;
+        private final Message reloadError;
+        private final Message guiUnderDevelopment;
+        private final Message onlyPlayers;
 
-        public General(YamlMap map) {
-            this.usage = map.get("usage").asString("<red>Сообщение usage не найдено</red>");
-            this.noPermission = map.get("no_permission").asString("<red>У вас нет прав!</red>");
-            this.consolePlayerRequired = map.get("console_player_required").asString("<red>Консоль должна указывать ник игрока!</red>");
+        public General(YamlMap map, LastItemsFree plugin) {
+            this.usage = new Message(EffectParser.parse(map.get("usage"), "player", plugin));
+            this.noPermission = new Message(EffectParser.parse(map.get("no_permission"), "player", plugin));
+            this.consolePlayerRequired = new Message(EffectParser.parse(map.get("console_player_required"), "player", plugin));
+            this.guiUnderDevelopment = new Message(EffectParser.parse(map.get("gui_under_development"), "player", plugin));
+            this.onlyPlayers = new Message(EffectParser.parse(map.get("only_players"), "player", plugin));
 
             YamlMap reloadMap = getSection(map, "reload");
-            this.reloadSuccess = reloadMap.get("success").asString("<green>Успешно</green>");
-            this.reloadError = reloadMap.get("error").asString("<red>Ошибка</red>");
+            this.reloadSuccess = new Message(EffectParser.parse(reloadMap.get("success"), "player", plugin));
+            this.reloadError = new Message(EffectParser.parse(reloadMap.get("error"), "player", plugin));
         }
 
-        public String getUsage() { return usage; }
-        public String getNoPermission() { return noPermission; }
-        public String getConsolePlayerRequired() { return consolePlayerRequired; }
-        public String getReloadSuccess() { return reloadSuccess; }
-        public String getReloadError() { return reloadError; }
+        public Message getUsage() { return usage; }
+        public Message getNoPermission() { return noPermission; }
+        public Message getConsolePlayerRequired() { return consolePlayerRequired; }
+        public Message getReloadSuccess() { return reloadSuccess; }
+        public Message getReloadError() { return reloadError; }
+        public Message getGuiUnderDevelopment() { return guiUnderDevelopment; }
+        public Message getOnlyPlayers() { return onlyPlayers; }
     }
 
     public static class Give {
-        private final String success;
-        private final String successOther;
+        private final Message success;
+        private final Message successOther;
         private final ActionError error;
 
-        public Give(YamlMap map) {
-            this.success = map.get("success").asString("<green>Успешно выдано</green>");
-            this.successOther = map.get("success_other").asString("<green>Успешно выдано</green>");
-            this.error = new ActionError(getSection(map, "error"));
+        public Give(YamlMap map, LastItemsFree plugin) {
+            this.success = new Message(EffectParser.parse(map.get("success"), "player", plugin));
+            this.successOther = new Message(EffectParser.parse(map.get("success_other"), "player", plugin));
+            this.error = new ActionError(getSection(map, "error"), plugin);
         }
 
-        public String getSuccess() { return success; }
-        public String getSuccessOther() { return successOther; }
+        public Message getSuccess() { return success; }
+        public Message getSuccessOther() { return successOther; }
         public ActionError getError() { return error; }
     }
 
     public static class Take {
-        private final String success;
-        private final String successOther;
+        private final Message success;
+        private final Message successOther;
         private final ActionError error;
 
-        public Take(YamlMap map) {
-            this.success = map.get("success").asString("<green>Успешно забрано</green>");
-            this.successOther = map.get("success_other").asString("<green>Успешно забрано</green>");
-            this.error = new ActionError(getSection(map, "error"));
+        public Take(YamlMap map, LastItemsFree plugin) {
+            this.success = new Message(EffectParser.parse(map.get("success"), "player", plugin));
+            this.successOther = new Message(EffectParser.parse(map.get("success_other"), "player", plugin));
+            this.error = new ActionError(getSection(map, "error"), plugin);
         }
 
-        public String getSuccess() { return success; }
-        public String getSuccessOther() { return successOther; }
+        public Message getSuccess() { return success; }
+        public Message getSuccessOther() { return successOther; }
         public ActionError getError() { return error; }
     }
 
     public static class ActionError {
-        private final String playerNotFound;
-        private final String valueNotNumber;
-        private final String itemNotFound;
-        private final String bigValue;
+        private final Message playerNotFound;
+        private final Message valueNotNumber;
+        private final Message itemNotFound;
+        private final Message bigValue;
 
-        public ActionError(YamlMap map) {
-            this.playerNotFound = map.get("player-not-found").asString("<red>Игрок не найден</red>");
-            this.valueNotNumber = map.get("value-not-number").asString("<red>Введите число!</red>");
-            this.itemNotFound = map.get("item-not-found").asString("<red>Предмет не найден!</red>");
-            this.bigValue = map.get("big-value").asString("<red>Слишком большое число!</red>");
+        public ActionError(YamlMap map, LastItemsFree plugin) {
+            this.playerNotFound = new Message(EffectParser.parse(map.get("player_not_found"), "player", plugin));
+            this.valueNotNumber = new Message(EffectParser.parse(map.get("value_not_number"), "player", plugin));
+            this.itemNotFound = new Message(EffectParser.parse(map.get("item_not_found"), "player", plugin));
+            this.bigValue = new Message(EffectParser.parse(map.get("big_value"), "player", plugin));
         }
 
-        public String getPlayerNotFound() { return playerNotFound; }
-        public String getValueNotNumber() { return valueNotNumber; }
-        public String getItemNotFound() { return itemNotFound; }
-        public String getBigValue() { return bigValue; }
+        public Message getPlayerNotFound() { return playerNotFound; }
+        public Message getValueNotNumber() { return valueNotNumber; }
+        public Message getItemNotFound() { return itemNotFound; }
+        public Message getBigValue() { return bigValue; }
     }
 
     public static class ListCmd {
-        private final String noItems;
-        private final String title;
-        private final String item;
+        private final Message noItems;
+        private final Message title;
+        private final Message item;
 
-        public ListCmd(YamlMap map) {
-            this.noItems = map.get("no_items").asString("<red>Нет предметов</red>");
-            this.title = map.get("title").asString("<gold>Предметы:</gold>");
-            this.item = map.get("item").asString("<gray>- %id%</gray>");
+        public ListCmd(YamlMap map, LastItemsFree plugin) {
+            this.noItems = new Message(EffectParser.parse(map.get("no_items"), "player", plugin));
+            this.title = new Message(EffectParser.parse(map.get("title"), "player", plugin));
+            this.item = new Message(EffectParser.parse(map.get("item"), "player", plugin));
         }
 
-        public String getNoItems() { return noItems; }
-        public String getTitle() { return title; }
-        public String getItem() { return item; }
+        public Message getNoItems() { return noItems; }
+        public Message getTitle() { return title; }
+        public Message getItem() { return item; }
     }
 }

@@ -1,5 +1,6 @@
 package ru.last.lastitems.item;
 
+import ru.last.lastitems.item.actions.Effect;
 import java.util.List;
 
 public record NoDropSettings(
@@ -7,5 +8,5 @@ public record NoDropSettings(
         boolean onDrop,
         boolean onDeath,
         boolean keepOnDeath,
-        List<ItemEffect> messages
+        List<Effect> messages
 ) {}

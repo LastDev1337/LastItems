@@ -1,0 +1,33 @@
+commands:
+  give:
+    enable: true
+    permission: "lastitems.give"
+  giveall:
+    enable: true
+    permission: "lastitems.giveall"
+  take:
+    enable: true
+    permission: "lastitems.take"
+  takeall:
+    enable: true
+    permission: "lastitems.takeall"
+  list:
+    enable: true
+    permission: "lastitems.list"
+  folder:
+    enable: true
+    permission: "lastitems.folder"
+  reload:
+    enable: true
+    permission: "lastitems.admin"
+
+arguments:
+  itemID:
+    enable: true
+    type: "choice"
+  folderName:
+    enable: true
+    type: "choice"
+  onlinePlayer:
+    enable: true
+    type: "player"

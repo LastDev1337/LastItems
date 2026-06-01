@@ -1,0 +1,96 @@
+
+display:
+  in: 'через %format%'
+  ago: '%format% назад'
+  now: 'Сейчас'
+
+defaults_views:
+  placeholders:
+  # если вам нужно поставить только один вид, то раскомментируйте строку ниже и установите нужный вид
+  # placeholders: all 
+    # если вам нужно поставить только один вид, то раскомментируйте строку ниже и установите нужный вид
+    # all: detail
+    local: detail
+    global: detail
+  # тут тоже можно поставить просто all
+  # effects: all
+  effects:
+    # all: default
+    console:
+      cmd: detail
+      msg: detail
+    title: detail
+    actionbar: detail
+    message: detail
+    damage: detail
+    disable_items: detail
+    freeze: detail
+    knockback: detail
+    lightning: detail
+    particle: detail
+    potion: detail
+
+formats:
+  default:
+    formats:
+      years: '%years% %months% %weeks% %days% %hours% %minutes% %seconds%'
+      months: '%months% %weeks% %days% %hours% %minutes% %seconds%'
+      weeks: '%weeks% %days% %hours% %minutes% %seconds%'
+      days: '%days% %hours% %minutes% %seconds%'
+      hours: '%hours% %minutes% %seconds%'
+      minutes: '%minutes% %seconds%'
+      seconds: '%seconds%'
+    types:
+      years: г.
+      months: мес.
+      weeks: нед.
+      days: д.
+      hours: ч.
+      minutes: мин.
+      seconds: сек.
+  clock:
+    formats:
+      years: '%years%:%months%:%weeks%:%days%:%hours%:%minutes%:%seconds%'
+      months: '%months%:%weeks%:%days%:%hours%:%minutes%:%seconds%'
+      weeks: '%weeks%:%days%:%hours%:%minutes%:%seconds%'
+      days: '%days%:%hours%:%minutes%:%seconds%'
+      hours: '%hours%:%minutes%:%seconds%'
+      minutes: '%minutes%:%seconds%'
+      seconds: '%minutes%:%seconds%'
+  detail:
+    formats:
+      years: '%years% %months%'
+      months: '%months% %days%'
+      days: '%days% %hours%'
+      hours: '%hours% %minutes%'
+      minutes: '%minutes% %seconds%'
+      seconds: '%seconds%'
+    types:
+      years:
+        form_1: 'год'
+        form_2: 'года'
+        form_5: 'лет'
+      months:
+        form_1: 'месяц'
+        form_3: 'месяца'
+        form_5: 'месяцев'
+      weeks:
+        form_1: 'неделя'
+        form_3: 'недели'
+        form_5: 'недель'
+      days:
+        form_1: 'день'
+        form_2: 'дня'
+        form_5: 'дней'
+      hours:
+        form_1: 'час'
+        form_2: 'часа'
+        form_5: 'часов'
+      minutes:
+        form_1: 'минуту'
+        form_2: 'минуты'
+        form_5: 'минут'
+      seconds:
+        form_1: 'секунду'
+        form_2: 'секунды'
+        form_5: 'секунд'

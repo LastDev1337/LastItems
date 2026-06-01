@@ -4,7 +4,7 @@ plugins {
     id("com.gradleup.shadow") version "9.3.1"
 }
 
-version = "0.2.2"
+version = "0.2.3"
 
 repositories {
     mavenCentral()
@@ -23,7 +23,7 @@ dependencies {
 }
 
 java {
-    toolchain.languageVersion = JavaLanguageVersion.of(21)
+    toolchain.languageVersion = JavaLanguageVersion.of(17)
 }
 
 tasks {
@@ -35,6 +35,11 @@ tasks {
         }
     }
 
+    withType<JavaCompile> {
+        options.release.set(17)
+        options.encoding = "UTF-8"
+    }
+
     withType<ProcessResources> {
         filteringCharset = "UTF-8"
     }
@@ -42,14 +47,10 @@ tasks {
     shadowJar {
         archiveClassifier.set("")
 
-        dependencies {
-            include(dependency("org.bstats:.*"))
-        }
-
         relocate("org.bstats", "ru.last.lastitems.bstats")
     }
 }
 
 tasks.build {
-    dependsOn(tasks.shadowJar)
+    dependsOn("shadowJar")
 }

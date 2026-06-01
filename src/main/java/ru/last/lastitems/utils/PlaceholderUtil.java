@@ -15,9 +15,11 @@ import org.bukkit.entity.Damageable;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 
+import ru.last.lastitems.item.TimeFormatter;
 import ru.last.lastitems.item.TriggerContext;
 
 import java.util.Locale;
+import java.util.Map;
 
 public final class PlaceholderUtil {
 
@@ -40,13 +42,30 @@ public final class PlaceholderUtil {
         local.of("entity", (params, data) -> resolveEntity(data.target(), params));
         local.of("victim", (params, data) -> resolveEntity(data.victim(), params));
 
+        local.of("time", (params, data) -> {
+            String format = params != null && !params.isEmpty() ? params : "default";
+            
+            if (data.context().timeValue() > 0) {
+                return TimeFormatter.format(data.context().timeValue(), format, "placeholders.local");
+            }
+            return "0";
+        });
+
         RESOLVER = local.and(PapiResolver.INSTANCE.map(resolveData -> resolveData != null ? resolveData.toOfflinePlayer() : null));
     }
 
     public static String replace(String text, TriggerContext context, Entity target) {
         if (text == null || text.isEmpty()) return text;
         if (RESOLVER == null) init();
-        return RESOLVER.setPlaceholders(text, new ResolveData(context, target, context.victim()));
+        
+        String result = text;
+        if (context.replacements() != null) {
+            for (java.util.Map.Entry<String, String> entry : context.replacements().entrySet()) {
+                result = result.replace(entry.getKey(), entry.getValue());
+            }
+        }
+        
+        return RESOLVER.setPlaceholders(result, new ResolveData(context, target, context.victim()));
     }
 
     public static Component color(String text) {

@@ -1,0 +1,18 @@
+name: LastItems
+version: '${version}'
+
+dependencies:
+  server:
+    BLib:
+      load: BEFORE
+      required: true
+    PlaceholderAPI:
+      load: BEFORE
+      required: false
+
+main: ru.last.lastitems.LastItemsFree
+api-version: '1.19'
+author: Last
+
+description: "Плагин для кастомных предметов на 1.16.5 - 1.21.11"
+website: "https://wiki.lastdev.space/lastitems"

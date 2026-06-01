@@ -1,0 +1,154 @@
+0.2.2 ChangeLog:
+
+В плагине LastItems поддерживаются два формата написания эффектов: 
+1. Короткий (в одну строку через квадратные скобки `[]`).
+2. Полный (через YAML Map/словари).
+
+Вы можете свободно комбинировать их внутри секции `effects:` (или `cast:`).
+
+Пример совместного использования:
+actions:
+  - trigger: on_hit
+    chance: 100.0
+    effects:
+      # 1. Используем короткий формат для простого сообщения
+      - "[message] &aВы успешно бросили трезубец!"
+      # 2. Используем Map формат для рандомных команд
+      - type: console
+        target: player # (не обязательно, по дефолту player. Может быть entity, victim)
+        commands:
+          type: random
+          random:
+            - 'p give %player% 10 -s'
+            - 'p give %player% 15 -s'
+            - 'p give %player% 25 -s'
+
+=====================================================
+ПОЛНЫЙ СПИСОК ЭФФЕКТОВ И ИХ ФОРМАТЫ
+=====================================================
+
+# --- 1. CONSOLE (Команды от консоли) ---
+# Короткий: "[console] [target_type] <command/message> <default/random> <cmd1;cmd2;...>"
+# Полный:
+# - type: console
+#   target: player
+#   commands:
+#     type: random # или default (одна команда)
+#     random:
+#       - 'eco give %player% 100'
+#       - 'eco give %player% 500'
+#     value: 'give %player% apple' # Если type: default
+
+# --- 2. MESSAGE / CHAT (Сообщения) ---
+# Короткий: "[message] <text>" (или [chat])
+# Полный:
+# - type: message # или chat
+#   value: "<#FF4500>Огненное сообщение!"
+
+# --- 3. BLOCKS (Работа с блоками) ---
+# Короткий (break): "[blocks] [target_type] [break] <Ширина;Высота;Глубина> [drop_items true/false] [блоки]"
+# Короткий (place): "[blocks] [target_type] [place] <x;y;z> <drop_items true/false> [block1;block2;...]"
+# Полный (break):
+# - type: blocks
+#   target: player
+#   action: break
+#   radius: "3;3;3"
+#   drop_items: true
+#   materials: # Если пусто, ломает всё, кроме бедрока/барьеров
+#     - STONE
+#     - DIRT
+# Полный (place):
+# - type: blocks
+#   action: place
+#   location: "0;1;0" # Относительно таргета
+#   drop_items: false
+#   materials:
+#     - DIRT
+
+# --- 4. ACTIONBAR ---
+# Короткий: "[actionbar] <text>"
+# Полный:
+# - type: actionbar
+#   value: "&eВы использовали способность!"
+
+# --- 5. TITLE ---
+# Короткий: "[title] {title(;)subtitle} [fadeIn] [stay] [fadeOut]"
+# Полный:
+# - type: title
+#   title: "&cВнимание!"
+#   subtitle: "&fСпособность активирована"
+#   fade_in: 20
+#   stay: 40
+#   fade_out: 20
+
+# --- 6. PARTICLE (Частицы) ---
+# Короткий: "[particle] <name> [count] [offset]"
+# Полный:
+# - type: particle
+#   name: FLAME
+#   count: 20
+#   offset: 0.5
+
+# --- 7. KNOCKBACK (Отдача) ---
+# Короткий: "[knockback] <strength> <vertical>"
+# Полный:
+# - type: knockback
+#   strength: 2.0
+#   vertical: 1.5
+
+# --- 8. LIGHTNING (Молния) ---
+# Короткий: "[lightning] <amount> <time>"
+# Полный:
+# - type: lightning
+#   amount: 1
+#   time: 0 # Задержка в тиках между ударами
+
+# --- 9. POTION (Зелья) ---
+# Короткий (give): "[potion] [give] <effect> <level> <duration> <?fall>"
+# Короткий (clear): "[potion] [clear] <effect>"
+# Полный (give):
+# - type: potion
+#   action: give
+#   effect: WITHER
+#   level: 2
+#   duration: "5s" # Время (s - секунды, t - тики, m - минуты)
+# Полный (clear):
+# - type: potion
+#   action: clear
+#   effect: WITHER # Оставьте пустым, чтобы снять все
+
+# --- 10. DISABLE ITEMS (Запрет использования) ---
+# Короткий: "[disable_items] [target_type] <mat> <time> [vanilla true/false]"
+# Полный:
+# - type: disable_items
+#   target: player
+#   material: SHIELD
+#   time: 100 # Время в тиках
+#   vanilla: true
+
+# --- 11. DAMAGE (Урон) ---
+# Короткий: "[damage] <amount>"
+# Полный:
+# - type: damage
+#   target: victim # Применяем урон к жертве
+#   amount: 5.0
+
+# --- 12. FREEZE (Заморозка) ---
+# Короткий: "[freeze] <ticks>"
+# Полный:
+# - type: freeze
+#   ticks: 60 # 3 секунды
+
+=====================================================
+Пример настройки одного предмета с разными форматами:
+=====================================================
+effects:
+  - "[particle] BLOCK_CRACK 10 0.5" # Быстрая короткая запись
+  - "[lightning] 1" # Быстрая запись
+  - type: message # Полная запись
+    value: "<gradient:#FF3333:#FFFF00>Божественная кара обрушилась на врага!</gradient>"
+  - type: potion # Удобно читаемая запись для зелий
+    action: give
+    effect: SLOWNESS
+    level: 3
+    duration: "10s"

@@ -1,0 +1,23 @@
+# ПРИМЕР: Огненный меч
+# Описание: Наносит урон, поджигает и накладывает иссушение.
+id: fire_sword
+material: GOLDEN_SWORD
+name: '<#FF4500>Огненный Меч'
+lore:
+  - '&7Дар из самых глубин ада.'
+  - ''
+  - '&6Эффекты при ударе:'
+  - ' <#FF4500>» <white>Урон +5 HP'
+  - ' <#FF4500>» <white>Поджигает врага'
+  - ' <#8B0000>» <white>Иссушение II на 5 сек'
+
+actions:
+  - trigger: left_click_entity
+    chance: 100
+    effects:
+      - "[message] <#FF4500>Вы использовали силу пламени!"
+      - "[damage] 5.0"
+      - "[potion] WITHER 2 5s"
+      - "[lightning] 1"
+      - "[particle] FLAME 20 0.5"
+      - "[console] burn {victim_name} 5"

@@ -24,6 +24,10 @@ public class ConfigManager {
         for (ConfigType type : ConfigType.values()) {
             loadConfig(type);
         }
+        
+        if (configs.containsKey(ConfigType.TIME_FORMAT)) {
+            ru.last.lastitems.item.TimeFormatter.init((YamlMap) configs.get(ConfigType.TIME_FORMAT));
+        }
     }
 
     private void loadConfig(ConfigType type) {
@@ -53,6 +57,7 @@ public class ConfigManager {
             switch (type) {
                 case MAIN -> configs.put(type, new MainConfig(rootMap));
                 case MESSAGES -> configs.put(type, new MessagesConfig(rootMap));
+                case TIME_FORMAT, COMMANDS, FOLDER -> configs.put(type, rootMap);
             }
 
         } catch (Exception e) {
@@ -62,4 +67,7 @@ public class ConfigManager {
 
     public MainConfig getMainConfig() { return (MainConfig) configs.get(ConfigType.MAIN); }
     public MessagesConfig getMessages() { return (MessagesConfig) configs.get(ConfigType.MESSAGES); }
+    public YamlMap getTimeFormatConfig() { return (YamlMap) configs.get(ConfigType.TIME_FORMAT); }
+    public YamlMap getCommandsConfig() { return (YamlMap) configs.get(ConfigType.COMMANDS); }
+    public YamlMap getFolderConfig() { return (YamlMap) configs.get(ConfigType.FOLDER); }
 }

@@ -1,0 +1,17 @@
+debug:
+  enable: true
+
+  level:
+    info:
+      enable: true
+      prefix: '[Debug] '
+    warn:
+      enable: true
+      prefix: '[Debug] '
+    error:
+      enable: true
+      prefix: '[Debug] '
+
+limits:
+  give: 64
+  take: 64

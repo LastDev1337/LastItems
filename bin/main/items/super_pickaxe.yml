@@ -1,0 +1,17 @@
+# ПРИМЕР: Крушитель Бедрока
+# Описание: Ломает блоки в радиусе.
+id: super_pickaxe
+material: NETHERITE_PICKAXE
+name: '<#FFFF00>Крушитель'
+lore:
+  - '&7Инструмент богов.'
+  - ''
+  - '&6Способность:'
+  - ' <#FFFF00>» <white>Ломает камни в радиусе 3'
+
+actions:
+  - trigger: block_break
+    chance: 100
+    effects:
+      - "[break_blocks] 3 STONE,COBBLESTONE,DIRT,COAL_ORE"
+      - "[particle] BLOCK_CRACK 10 0.5" # В новых версиях требует параметров, но как пример пойдет

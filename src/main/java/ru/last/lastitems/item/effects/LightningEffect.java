@@ -1,51 +1,67 @@
 package ru.last.lastitems.item.effects;
 
 import dev.by1337.yaml.YamlMap;
-import dev.by1337.yaml.YamlValue;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import ru.last.lastitems.LastItemsFree;
-import ru.last.lastitems.item.*;
+import ru.last.lastitems.item.TriggerContext;
+import ru.last.lastitems.utils.DynamicUtil;
 import ru.last.lastitems.utils.TimeData;
 
-import java.util.Collection;
-import java.util.List;
+public class LightningEffect extends AbstractEffect {
+    private final String amountExpr;
+    private final TimeData cooldownTime;
+    private final TimeData fireTime;
 
-public class LightningEffect implements ItemEffect {
-    private final String targetSelector;
-    private final int amount;
-    private final int fireTicks;
-
-    public LightningEffect(String targetSelector, int amount, int fireTicks) {
-        this.targetSelector = targetSelector;
-        this.amount = amount;
-        this.fireTicks = fireTicks;
+    public LightningEffect(String targetSelector, String amountExpr, TimeData cooldownTime, TimeData fireTime) {
+        super(targetSelector);
+        this.amountExpr = amountExpr;
+        this.cooldownTime = cooldownTime;
+        this.fireTime = fireTime;
     }
 
-    public static List<ItemEffect> parse(YamlMap map, YamlValue rootNode, String targetSelector, LastItemsFree plugin) {
-        YamlMap settings = map.get("settings").asYamlMap().hasResult() ? map.get("settings").asYamlMap().getOrThrow() : new YamlMap();
-        int amount = settings.get("amount").asInt(1);
-        int fireTicks = 0;
-        if (settings.get("fire").asYamlMap().hasResult()) {
-            YamlMap fireMap = settings.get("fire").asYamlMap().getOrThrow();
-            TimeData time = TimeData.parse(fireMap.get("time"), 0);
-            fireTicks = time.ticks();
-        }
-        return List.of(new LightningEffect(targetSelector, amount, fireTicks));
+    public static LightningEffect parseShort(String target, String value) {
+        // [lightning] <amount> <cooldown spawn lightning> <fire time>
+        String[] parts = value.split(" ");
+        String a = parts.length >= 1 ? parts[0] : "1";
+        TimeData t = parts.length >= 2 ? TimeData.parseString(parts[1]) : TimeData.parseString("0");
+        TimeData ft = parts.length >= 3 ? TimeData.parseString(parts[2]) : TimeData.parseString("0");
+        return new LightningEffect(target, a, t, ft);
+    }
+
+    public static LightningEffect parseFull(String target, YamlMap map) {
+        return new LightningEffect(
+                target,
+                map.get("amount").asString("1"),
+                TimeData.parse(map.get("cooldown"), "0"),
+                TimeData.parse(map.get("fire_time"), "0")
+        );
     }
 
     @Override
-    public boolean execute(TriggerContext context) {
-        Collection<? extends Entity> targets = TargetResolver.resolve(targetSelector, context);
-        if (targets.isEmpty()) return false;
+    protected String getContextKey() {
+        return "effects.lightning";
+    }
 
-        for (Entity target : targets) {
-            for (int i = 0; i < amount; i++) {
+    @Override
+    protected void execute(Entity target, TriggerContext context) {
+        int amount = DynamicUtil.evaluateInt(amountExpr, context);
+        int cooldown = cooldownTime.getTicks(context);
+        int fTime = fireTime.getTicks(context);
+
+        for (int i = 0; i < amount; i++) {
+            Runnable strike = () -> {
                 target.getWorld().strikeLightning(target.getLocation());
-            }
-            if (fireTicks > 0) {
-                target.setFireTicks(target.getFireTicks() + fireTicks);
+                if (fTime > 0) {
+                    target.setFireTicks(target.getFireTicks() + fTime);
+                }
+            };
+
+            if (cooldown <= 0 || i == 0) {
+                strike.run();
+            } else {
+                Bukkit.getScheduler().runTaskLater(LastItemsFree.getInstance(), strike, (long) i * cooldown);
             }
         }
-        return true;
     }
 }

@@ -79,7 +79,7 @@ public class PlaceHook extends PlaceholderExpansion {
                 }
             }
 
-            return TimeFormatter.format(maxCooldown, format);
+            return TimeFormatter.format(maxCooldown, format, "placeholders.global");
         }
 
         return null;

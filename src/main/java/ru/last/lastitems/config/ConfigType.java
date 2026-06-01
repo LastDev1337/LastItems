@@ -2,7 +2,10 @@ package ru.last.lastitems.config;
 
 public enum ConfigType {
     MAIN("config.yml"),
-    MESSAGES("messages.yml");
+    MESSAGES("messages.yml"),
+    TIME_FORMAT("modules/time-format.yml"),
+    COMMANDS("modules/commands.yml"),
+    FOLDER("modules/folder.yml");
 
     private final String fileName;
 

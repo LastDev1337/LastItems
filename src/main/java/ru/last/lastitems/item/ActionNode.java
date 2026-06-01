@@ -5,27 +5,29 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import ru.last.lastitems.LastItemsFree;
-import ru.last.lastitems.item.actions.ClearAction;
-import ru.last.lastitems.item.actions.CooldownAction;
-import ru.last.lastitems.item.actions.NoTargetAction;
-import ru.last.lastitems.item.actions.VanillaAction;
+import ru.last.lastitems.item.actions.Effect;
+import ru.last.lastitems.item.actions.types.ClearAction;
+import ru.last.lastitems.item.actions.types.CooldownAction;
+import ru.last.lastitems.item.actions.types.NoTargetAction;
+import ru.last.lastitems.item.actions.types.VanillaAction;
+import ru.last.lastitems.utils.DynamicUtil;
 
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class ActionNode {
-    private final int requiredValue;
-    private final double chance;
+    private final String requiredValueExpr;
+    private final String chanceExpr;
     private final TriggerConditions conditions;
-    private final List<ItemEffect> effects;
+    private final List<Effect> effects;
     private final NoTargetAction noTargetAction;
     private final CooldownAction cooldownAction;
     private final ClearAction clearAction;
     private final VanillaAction vanillaAction;
 
-    public ActionNode(int requiredValue, double chance, TriggerConditions conditions, List<ItemEffect> effects, NoTargetAction noTargetAction, CooldownAction cooldownAction, ClearAction clearAction, VanillaAction vanillaAction) {
-        this.requiredValue = requiredValue;
-        this.chance = chance;
+    public ActionNode(String requiredValueExpr, String chanceExpr, TriggerConditions conditions, List<Effect> effects, NoTargetAction noTargetAction, CooldownAction cooldownAction, ClearAction clearAction, VanillaAction vanillaAction) {
+        this.requiredValueExpr = requiredValueExpr;
+        this.chanceExpr = chanceExpr;
         this.conditions = conditions;
         this.effects = effects;
         this.noTargetAction = noTargetAction;
@@ -35,12 +37,20 @@ public class ActionNode {
     }
 
     public void tryExecute(TriggerContext context) {
-        if (!conditions.check(context)) return;
+        if (!conditions.check(context)) {
+            LastItemsFree.getInstance().getDebugLogger().info("Action conditions not met for trigger on item " + (context.item() != null ? context.item().getType() : "null"));
+            return;
+        }
 
-        if (chance < 100.0 && ThreadLocalRandom.current().nextDouble(100.0) >= chance) return;
+        double chance = DynamicUtil.evaluate(chanceExpr, context);
+        if (chance < 100.0 && ThreadLocalRandom.current().nextDouble(100.0) >= chance) {
+            LastItemsFree.getInstance().getDebugLogger().info("Action chance check failed (" + chance + "%)");
+            return;
+        }
 
         if (cooldownAction != null && cooldownAction.isOnCooldown(context.player())) {
-            cooldownAction.executeEffects(context);
+            LastItemsFree.getInstance().getDebugLogger().info("Action on cooldown for " + context.player().getName());
+            cooldownAction.executeActions(context);
             if (context.event() != null) {
                 context.event().setCancelled(true);
             }
@@ -48,10 +58,13 @@ public class ActionNode {
         }
 
         ItemStack item = context.item();
-        ItemMeta meta = item.getItemMeta();
-        if (meta == null) return;
+        ItemMeta meta = item != null ? item.getItemMeta() : null;
+        if (meta == null) {
+            LastItemsFree.getInstance().getDebugLogger().warn("Executing action without valid item meta.");
+        }
 
-        if (requiredValue > 1) {
+        int requiredValue = DynamicUtil.evaluateInt(requiredValueExpr, context);
+        if (requiredValue > 1 && meta != null) {
             NamespacedKey counterKey = LastItemsFree.getInstance().getActionCounterKey();
             var pdc = meta.getPersistentDataContainer();
 
@@ -59,25 +72,27 @@ public class ActionNode {
             currentCount++;
 
             if (currentCount >= requiredValue) {
+                LastItemsFree.getInstance().getDebugLogger().info("Action counter reached " + requiredValue + ", executing...");
                 pdc.set(counterKey, PersistentDataType.INTEGER, 0);
                 item.setItemMeta(meta);
             } else {
+                LastItemsFree.getInstance().getDebugLogger().info("Action counter incremented: " + currentCount + "/" + requiredValue);
                 pdc.set(counterKey, PersistentDataType.INTEGER, currentCount);
                 item.setItemMeta(meta);
                 return;
             }
         }
 
+        LastItemsFree.getInstance().getDebugLogger().info("Executing action effects...");
         if (vanillaAction != null) {
             vanillaAction.execute(context);
         }
 
-        boolean executedAny = false;
-        for (ItemEffect effect : effects) {
-            if (effect.execute(context)) executedAny = true;
+        for (Effect effect : effects) {
+            effect.execute(context);
         }
 
-        if (!executedAny && noTargetAction != null) {
+        if (effects.isEmpty() && noTargetAction != null) {
             noTargetAction.execute(context);
         }
 
@@ -90,8 +105,8 @@ public class ActionNode {
         }
     }
 
-    public int getRequiredValue() {
-        return requiredValue;
+    public int getRequiredValue(TriggerContext context) {
+        return DynamicUtil.evaluateInt(requiredValueExpr, context);
     }
 
     public CooldownAction getCooldownAction() {

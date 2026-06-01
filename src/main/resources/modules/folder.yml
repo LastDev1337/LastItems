@@ -1,0 +1,16 @@
+
+enable: true
+permission: "lastitems.folder"
+
+settings:
+  drop_if_full: true
+  max_items_limit: 100
+  send_player_message: true
+  give_sound: "[sound] entity.item.pickup 1.0 1.0"
+
+messages:
+  usage: "[message] &7Использование: /lastitems folder <папка> [игрок]"
+  empty: "[message] &cПапка '%folder%' пуста или не найдена!"
+  success: "[message] &aВыдано %count% предметов из папки %folder% игроку %player_name%!"
+  player_not_found: "[message] &cИгрок %player% не найден!"
+  limit_reached: "[message] &cПревышен лимит выдачи предметов (%limit%)!"

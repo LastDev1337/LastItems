@@ -10,6 +10,7 @@ public class MainConfig {
     private final LogLevelSettings error;
     private final int limitGive;
     private final int limitTake;
+    private final ModulesSettings modules;
 
     public MainConfig(YamlMap rootMap) {
         YamlValue debugNode = rootMap.get("debug");
@@ -22,19 +23,19 @@ public class MainConfig {
             if (levelNode.asYamlMap().hasResult()) {
                 YamlMap levelMap = levelNode.asYamlMap().getOrThrow();
 
-                this.info = new LogLevelSettings(getSection(levelMap, "info"), "&a[Debug] &f");
-                this.warn = new LogLevelSettings(getSection(levelMap, "warn"), "&e[Debug] &e");
-                this.error = new LogLevelSettings(getSection(levelMap, "error"), "&c[Debug] &c");
+                this.info = new LogLevelSettings(getSection(levelMap, "info"), "[Debug] ");
+                this.warn = new LogLevelSettings(getSection(levelMap, "warn"), "[Debug] ");
+                this.error = new LogLevelSettings(getSection(levelMap, "error"), "[Debug] ");
             } else {
-                this.info = new LogLevelSettings(new YamlMap(), "&a[Debug] &f");
-                this.warn = new LogLevelSettings(new YamlMap(), "&e[Debug] &e");
-                this.error = new LogLevelSettings(new YamlMap(), "&c[Debug] &c");
+                this.info = new LogLevelSettings(new YamlMap(), "[Debug] ");
+                this.warn = new LogLevelSettings(new YamlMap(), "[Debug] ");
+                this.error = new LogLevelSettings(new YamlMap(), "[Debug] ");
             }
         } else {
             this.debugEnable = true;
-            this.info = new LogLevelSettings(new YamlMap(), "&a[Debug] &f");
-            this.warn = new LogLevelSettings(new YamlMap(), "&e[Debug] &e");
-            this.error = new LogLevelSettings(new YamlMap(), "&c[Debug] &c");
+            this.info = new LogLevelSettings(new YamlMap(), "[Debug] ");
+            this.warn = new LogLevelSettings(new YamlMap(), "[Debug] ");
+            this.error = new LogLevelSettings(new YamlMap(), "[Debug] ");
         }
 
         YamlValue limitsNode = rootMap.get("limits");
@@ -46,6 +47,8 @@ public class MainConfig {
             this.limitGive = 64;
             this.limitTake = 64;
         }
+
+        this.modules = new ModulesSettings(getSection(rootMap, "modules"));
     }
 
     private YamlMap getSection(YamlMap map, String key) {
@@ -59,4 +62,5 @@ public class MainConfig {
     public LogLevelSettings getError() { return error; }
     public int getLimitGive() { return limitGive; }
     public int getLimitTake() { return limitTake; }
+    public ModulesSettings getModules() { return modules; }
 }

@@ -36,6 +36,16 @@ public class CustomItem {
 
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
+            if (meta.hasDisplayName()) {
+                meta.setDisplayName(PlaceholderUtil.colorString(PlaceholderUtil.replace(meta.getDisplayName(), new TriggerContext(player, item, null, null), player)));
+            }
+            if (meta.hasLore()) {
+                List<String> lore = meta.getLore();
+                if (lore != null) {
+                    lore.replaceAll(line -> PlaceholderUtil.colorString(PlaceholderUtil.replace(line, new TriggerContext(player, item, null, null), player)));
+                    meta.setLore(lore);
+                }
+            }
             NamespacedKey idKey = new NamespacedKey(LastItemsFree.getInstance(), "lastitems_free");
             meta.getPersistentDataContainer().set(idKey, PersistentDataType.STRING, id);
             item.setItemMeta(meta);

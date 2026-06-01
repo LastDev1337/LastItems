@@ -30,7 +30,6 @@ public class ClickTrigger implements Listener {
         CustomItem customItem = itemRegistry.getCustomItem(item);
         if (customItem == null) return;
 
-        event.setCancelled(true);
         Player player = event.getPlayer();
         TriggerContext context = new TriggerContext(player, item, null, event);
 

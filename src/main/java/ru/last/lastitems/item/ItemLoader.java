@@ -5,7 +5,7 @@ import dev.by1337.yaml.YamlMap;
 import dev.by1337.yaml.YamlValue;
 import dev.by1337.yaml.codec.DataResult;
 import ru.last.lastitems.LastItemsFree;
-import ru.last.lastitems.item.messages.MessageParser;
+import ru.last.lastitems.item.actions.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,12 +20,12 @@ import java.util.stream.Stream;
 public class ItemLoader {
     private final LastItemsFree plugin;
     private final ItemRegistry registry;
-    private final ActionParser actionParser;
+    private final TriggerParser actionParser;
 
     public ItemLoader(LastItemsFree plugin, ItemRegistry registry) {
         this.plugin = plugin;
         this.registry = registry;
-        this.actionParser = new ActionParser(plugin);
+        this.actionParser = new TriggerParser(plugin);
     }
 
     public void loadItems() {
@@ -49,15 +49,16 @@ public class ItemLoader {
                         String name = path.toString();
                         return name.endsWith(".yml") || name.endsWith(".yaml");
                     })
-                    .forEach(this::loadItemFromFile);
+                    .forEach(path -> loadItemFromFile(path, itemsFolder));
         } catch (IOException e) {
             plugin.getDebugLogger().error("Ошибка при чтении файлов предметов", e);
         }
 
         plugin.getDebugLogger().info("Загружено кастомных предметов: " + registry.size());
+        plugin.getDebugLogger().info("Загружено папок: " + registry.getFolders().size());
     }
 
-    private void loadItemFromFile(Path path) {
+    private void loadItemFromFile(Path path, Path itemsFolder) {
         File file = path.toFile();
         try {
             YamlMap root = YamlMap.load(file);
@@ -74,6 +75,12 @@ public class ItemLoader {
             String rawId = root.get("item").asYamlMap().getOrThrow().get("id").asString(file.getName().replace(".yml", ""));
             String id = rawId.toLowerCase(Locale.ROOT);
 
+            Path parent = path.getParent();
+            String folderName = "root";
+            if (parent != null && !parent.equals(itemsFolder)) {
+                folderName = itemsFolder.relativize(parent).toString().replace("\\", "/");
+            }
+
             int amount = root.get("item").asYamlMap().getOrThrow().get("amount").asInt(1);
             Map<ActionTrigger, List<ActionNode>> actions = actionParser.parseActions(root.get("actions"));
 
@@ -82,7 +89,7 @@ public class ItemLoader {
             boolean ndDrop = false;
             boolean ndDeath = false;
             boolean ndKeep = false;
-            List<ItemEffect> ndMessages = Collections.emptyList();
+            List<Effect> ndMessages = Collections.emptyList();
 
             if (noDropNode.asYamlMap().hasResult()) {
                 YamlMap ndMap = noDropNode.asYamlMap().getOrThrow();
@@ -90,13 +97,17 @@ public class ItemLoader {
                 ndDrop = ndMap.get("on_drop").asBool(false);
                 ndDeath = ndMap.get("on_death").asBool(false);
                 ndKeep = ndMap.get("keep_on_death").asBool(false);
-                ndMessages = MessageParser.parse(noDropNode, "player");
+                
+                if (ndMap.has("messages")) {
+                    ndMessages = EffectParser.parse(ndMap.get("messages"), "player", plugin);
+                }
             }
 
             NoDropSettings noDropSettings = new NoDropSettings(ndEnable, ndDrop, ndDeath, ndKeep, ndMessages);
 
             CustomItem customItem = new CustomItem(id, model, model.build(), amount, actions, noDropSettings);
-            registry.register(customItem);
+
+            registry.register(customItem, folderName);
 
         } catch (Exception e) {
             plugin.getDebugLogger().error("Критическая ошибка при загрузке предмета: " + file.getName(), e);

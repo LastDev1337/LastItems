@@ -1,0 +1,18 @@
+# ПРИМЕР: Лук Заморозки
+# Описание: Замораживает цель при попадании стрелой.
+id: freeze_bow
+material: BOW
+name: '<#ADD8E6>Лук Хлада'
+lore:
+  - '&7Стрелы, пропитанные льдом.'
+  - ''
+  - '&6Эффект:'
+  - ' <#ADD8E6>» <white>Заморозка цели на 3 сек.'
+
+actions:
+  - trigger: projectile_hit_entity
+    chance: 100
+    effects:
+      - "[title] <#ADD8E6>ЗАМОРОЗКА;Вы поражены холодом!"
+      - "[freeze] 3s"
+      - "[particle] SNOWFLAKE 30 0.3"

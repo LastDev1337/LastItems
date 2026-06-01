@@ -1,0 +1,23 @@
+# ПРИМЕР: Прыжковые ботинки
+# Описание: Дают мощный прыжок при правом клике.
+id: jump_boots
+material: LEATHER_BOOTS
+name: '<#00FF7F>Ботинки Прыгуна'
+lore:
+  - '&7Позволяют взмыть в небеса.'
+  - ''
+  - '&6Способность:'
+  - ' <#00FF7F>» <white>ПКМ: Прыжок вверх'
+  - ''
+  - '&8Перезарядка: 5 секунд'
+
+actions:
+  - trigger: right_click
+    chance: 100
+    cooldown:
+      enable: true
+      time: 5s
+    effects:
+      - "[actionbar] <#00FF7F>ВЗЛЁТ!"
+      - "[knockback] 0.0 1.5"
+      - "[particle] CLOUD 20 0.5"
