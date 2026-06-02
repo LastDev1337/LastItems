@@ -29,10 +29,9 @@ public final class PlaceholderUtil {
     private PlaceholderUtil() {}
 
     public static void init() {
-        try {
-            MAX_HEALTH_ATTRIBUTE = Attribute.valueOf("MAX_HEALTH"); // 1.21.x
-        } catch (IllegalArgumentException e) {
-            MAX_HEALTH_ATTRIBUTE = Attribute.valueOf("GENERIC_MAX_HEALTH"); // 1.16.5 - 1.20.6
+        MAX_HEALTH_ATTRIBUTE = AttributeUtil.getAttribute("MAX_HEALTH");
+        if (MAX_HEALTH_ATTRIBUTE == null) {
+            MAX_HEALTH_ATTRIBUTE = AttributeUtil.getAttribute("GENERIC_MAX_HEALTH");
         }
 
         Placeholders<ResolveData> local = new Placeholders<>(PlaceholderSyntax.PAPI);

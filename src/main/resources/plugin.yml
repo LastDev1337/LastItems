@@ -1,5 +1,5 @@
 name: LastItems
-version: $version
+version: '0.2.3.1'
 
 depend: [ BLib ]
 softdepend: [ PlaceholderAPI ]
