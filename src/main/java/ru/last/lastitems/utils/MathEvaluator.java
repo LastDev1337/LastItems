@@ -5,9 +5,7 @@ public class MathEvaluator {
         return new Object() {
             int pos = -1, ch;
 
-            void nextChar() {
-                ch = (++pos < str.length()) ? str.charAt(pos) : -1;
-            }
+            void nextChar() { ch = (++pos < str.length()) ? str.charAt(pos) : -1; }
 
             boolean eat(int charToEat) {
                 while (ch == ' ') nextChar();

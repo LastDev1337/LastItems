@@ -24,9 +24,7 @@ public class ItemDropListener implements Listener {
     private final ItemRegistry itemRegistry;
     private final Map<UUID, ItemStack[]> savedItems = new ConcurrentHashMap<>();
 
-    public ItemDropListener(ItemRegistry itemRegistry) {
-        this.itemRegistry = itemRegistry;
-    }
+    public ItemDropListener(ItemRegistry itemRegistry) { this.itemRegistry = itemRegistry; }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onDrop(PlayerDropItemEvent event) {
@@ -79,14 +77,10 @@ public class ItemDropListener implements Listener {
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
-    public void onRespawn(PlayerRespawnEvent event) {
-        restoreInventory(event.getPlayer());
-    }
+    public void onRespawn(PlayerRespawnEvent event) { restoreInventory(event.getPlayer()); }
 
     @EventHandler(priority = EventPriority.HIGHEST)
-    public void onQuit(PlayerQuitEvent event) {
-        restoreInventory(event.getPlayer());
-    }
+    public void onQuit(PlayerQuitEvent event) { restoreInventory(event.getPlayer()); }
 
     private void restoreInventory(Player player) {
         ItemStack[] savedInv = savedItems.remove(player.getUniqueId());

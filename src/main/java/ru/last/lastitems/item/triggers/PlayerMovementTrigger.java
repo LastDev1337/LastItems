@@ -23,7 +23,7 @@ public class PlayerMovementTrigger implements Listener {
             if (item == null || item.getType().isAir()) continue;
             CustomItem ci = itemRegistry.getCustomItem(item);
             if (ci != null) {
-                ci.executeTrigger(trigger, new TriggerContext(player, item, null, (org.bukkit.event.Cancellable) (event instanceof org.bukkit.event.Cancellable ? event : null)));
+                ci.executeTrigger(trigger, new TriggerContext(player, item, null, event));
             }
         }
     }
@@ -44,12 +44,8 @@ public class PlayerMovementTrigger implements Listener {
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
-    public void onJoin(PlayerJoinEvent event) {
-        execute(event.getPlayer(), ActionTrigger.ON_JOIN, event);
-    }
+    public void onJoin(PlayerJoinEvent event) { execute(event.getPlayer(), ActionTrigger.ON_JOIN, event); }
 
     @EventHandler(priority = EventPriority.HIGHEST)
-    public void onRespawn(PlayerRespawnEvent event) {
-        execute(event.getPlayer(), ActionTrigger.ON_RESPAWN, event);
-    }
+    public void onRespawn(PlayerRespawnEvent event) { execute(event.getPlayer(), ActionTrigger.ON_RESPAWN, event); }
 }

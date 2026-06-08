@@ -50,7 +50,7 @@ public class TimeFormatter {
         YamlMap f = formatMap.get("formats").asYamlMap().hasResult() ? formatMap.get("formats").asYamlMap().getOrThrow() : new YamlMap();
         YamlMap t = formatMap.get("types").asYamlMap().hasResult() ? formatMap.get("types").asYamlMap().getOrThrow() : new YamlMap();
 
-        String formatStr = "";
+        String formatStr;
         if (years > 0) formatStr = f.get("years").asString("%years% г.");
         else if (months > 0) formatStr = f.get("months").asString("%months% мес.");
         else if (weeks > 0) formatStr = f.get("weeks").asString("%weeks% нед.");
@@ -117,13 +117,13 @@ public class TimeFormatter {
             StringBuilder sb = new StringBuilder();
             if (hours > 0) sb.append(hours).append(" ").append(plural(hours, "час", "часа", "часов", "часа")).append(" ");
             if (minutes > 0) sb.append(minutes).append(" ").append(plural(minutes, "минута", "минуты", "минут", "минуты")).append(" ");
-            if (seconds > 0 || sb.length() == 0) sb.append(seconds).append(" ").append(plural(seconds, "секунда", "секунды", "секунд", "секунды"));
+            if (seconds > 0 || sb.isEmpty()) sb.append(seconds).append(" ").append(plural(seconds, "секунда", "секунды", "секунд", "секунды"));
             return sb.toString().trim();
         } else {
             StringBuilder sb = new StringBuilder();
             if (hours > 0) sb.append(hours).append(" ч. ");
             if (minutes > 0) sb.append(minutes).append(" мин. ");
-            if (seconds > 0 || sb.length() == 0) sb.append(seconds).append(" сек.");
+            if (seconds > 0 || sb.isEmpty()) sb.append(seconds).append(" сек.");
             return sb.toString().trim();
         }
     }

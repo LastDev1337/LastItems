@@ -1,6 +1,7 @@
 package ru.last.lastitems.item;
 
 import org.bukkit.NamespacedKey;
+import org.bukkit.event.Cancellable;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
@@ -51,8 +52,8 @@ public class ActionNode {
         if (cooldownAction != null && cooldownAction.isOnCooldown(context.player())) {
             LastItemsFree.getInstance().getDebugLogger().info("Action on cooldown for " + context.player().getName());
             cooldownAction.executeActions(context);
-            if (context.event() != null) {
-                context.event().setCancelled(true);
+            if (context.event() instanceof Cancellable c) {
+                c.setCancelled(true);
             }
             return;
         }
@@ -105,11 +106,7 @@ public class ActionNode {
         }
     }
 
-    public int getRequiredValue(TriggerContext context) {
-        return DynamicUtil.evaluateInt(requiredValueExpr, context);
-    }
+    public int getRequiredValue(TriggerContext context) { return DynamicUtil.evaluateInt(requiredValueExpr, context); }
 
-    public CooldownAction getCooldownAction() {
-        return cooldownAction;
-    }
+    public CooldownAction getCooldownAction() { return cooldownAction; }
 }

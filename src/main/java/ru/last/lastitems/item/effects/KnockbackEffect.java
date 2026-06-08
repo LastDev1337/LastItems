@@ -17,7 +17,6 @@ public class KnockbackEffect extends AbstractEffect {
     }
 
     public static KnockbackEffect parseShort(String target, String value) {
-        // [knockback] <strength> <vertical>
         String[] parts = value.split(" ");
         String s = parts[0];
         String v = parts.length >= 2 ? parts[1] : "0.5";
@@ -33,9 +32,7 @@ public class KnockbackEffect extends AbstractEffect {
     }
 
     @Override
-    protected String getContextKey() {
-        return "effects.knockback";
-    }
+    protected String getContextKey() { return "effects.knockback"; }
 
     @Override
     protected void execute(Entity target, TriggerContext context) {

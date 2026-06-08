@@ -22,7 +22,6 @@ public class DisableItemsEffect extends AbstractEffect {
     }
 
     public static DisableItemsEffect parseShort(String target, String value) {
-        // [disable_items] <mat> <time> [vanilla]
         String[] parts = value.split(" ");
         Material mat = Material.valueOf(parts[0].toUpperCase(Locale.ROOT));
         TimeData td = TimeData.parseString(parts[1]);
@@ -37,9 +36,7 @@ public class DisableItemsEffect extends AbstractEffect {
     }
 
     @Override
-    protected String getContextKey() {
-        return "effects.disable_items";
-    }
+    protected String getContextKey() { return "effects.disable_items"; }
 
     @Override
     protected void execute(Entity target, TriggerContext context) {

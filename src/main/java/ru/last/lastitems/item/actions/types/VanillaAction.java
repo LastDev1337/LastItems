@@ -45,7 +45,7 @@ public class VanillaAction {
             );
         }
 
-        Event event = (Event) targetContext.event();
+        Event event = targetContext.event();
         LastItemsFree.getInstance().getDebugLogger().info("Executing VanillaAction for event: " + (event != null ? event.getClass().getSimpleName() : "null"));
 
         if (event instanceof Cancellable cancellableEvent) {

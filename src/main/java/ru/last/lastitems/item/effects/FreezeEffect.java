@@ -14,7 +14,6 @@ public class FreezeEffect extends AbstractEffect {
     }
 
     public static FreezeEffect parseShort(String target, String value) {
-        // [freeze] <time>
         TimeData td = TimeData.parseString(value);
         return new FreezeEffect(target, td);
     }
@@ -24,16 +23,14 @@ public class FreezeEffect extends AbstractEffect {
     }
 
     @Override
-    protected String getContextKey() {
-        return "effects.freeze";
-    }
+    protected String getContextKey() { return "effects.freeze"; }
 
     @Override
     protected void execute(Entity target, TriggerContext context) {
         try {
             target.setFreezeTicks(timeData.getTicks(context));
         } catch (NoSuchMethodError e) {
-            // ignored for back versions
+            // nope
         }
     }
 }

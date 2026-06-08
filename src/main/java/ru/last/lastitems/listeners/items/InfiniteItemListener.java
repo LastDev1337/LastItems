@@ -17,15 +17,14 @@ import ru.last.lastitems.item.ItemRegistry;
 import ru.last.lastitems.item.TriggerContext;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class InfiniteItemListener implements Listener {
 
     private final ItemRegistry itemRegistry;
-    private final Set<UUID> activeInteractions = new HashSet<>();
+    private final Set<UUID> activeInteractions = ConcurrentHashMap.newKeySet();
 
-    public InfiniteItemListener(ItemRegistry itemRegistry) {
-        this.itemRegistry = itemRegistry;
-    }
+    public InfiniteItemListener(ItemRegistry itemRegistry) { this.itemRegistry = itemRegistry; }
 
     private boolean isInfinite(ItemStack item, Player player) {
         CustomItem customItem = itemRegistry.getCustomItem(item);
@@ -47,13 +46,15 @@ public class InfiniteItemListener implements Listener {
         if (event.getItem() == null || isInfinite(event.getItem(), event.getPlayer())) return;
 
         final UUID uuid = event.getPlayer().getUniqueId();
-        if (activeInteractions.contains(uuid)) return;
+        if (!activeInteractions.add(uuid)) return;
 
         final ItemStack snapshot = event.getItem().clone();
         final EquipmentSlot hand = event.getHand();
-        if (hand == null) return;
+        if (hand == null) {
+            activeInteractions.remove(uuid);
+            return;
+        }
 
-        activeInteractions.add(uuid);
         Player player = event.getPlayer();
 
         Bukkit.getScheduler().runTaskLater(LastItemsFree.getInstance(), () -> {

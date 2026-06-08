@@ -31,18 +31,22 @@ public class CustomItem {
     }
 
     public ItemStack createFor(Player player) {
-        ItemStack item = itemModel.build(s -> PlaceholderUtil.replace(s, new TriggerContext(player, null, null, null), player));
+        TriggerContext baseCtx = new TriggerContext(player, null, null, null);
+        
+        ItemStack item = itemModel.build(s -> PlaceholderUtil.replace(s, baseCtx, player));
         item.setAmount(defaultAmount);
 
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
+            TriggerContext itemCtx = new TriggerContext(player, item, null, null);
+            
             if (meta.hasDisplayName()) {
-                meta.setDisplayName(PlaceholderUtil.colorString(PlaceholderUtil.replace(meta.getDisplayName(), new TriggerContext(player, item, null, null), player)));
+                meta.setDisplayName(PlaceholderUtil.colorString(PlaceholderUtil.replace(meta.getDisplayName(), itemCtx, player)));
             }
             if (meta.hasLore()) {
                 List<String> lore = meta.getLore();
                 if (lore != null) {
-                    lore.replaceAll(line -> PlaceholderUtil.colorString(PlaceholderUtil.replace(line, new TriggerContext(player, item, null, null), player)));
+                    lore.replaceAll(line -> PlaceholderUtil.colorString(PlaceholderUtil.replace(line, itemCtx, player)));
                     meta.setLore(lore);
                 }
             }
@@ -62,11 +66,7 @@ public class CustomItem {
         }
     }
 
-    public Map<ActionTrigger, List<ActionNode>> getActions() {
-        return actionsMap;
-    }
-
+    public Map<ActionTrigger, List<ActionNode>> getActions() { return actionsMap; }
     public String getId() { return id; }
-
     public NoDropSettings getNoDropSettings() { return noDropSettings; }
 }

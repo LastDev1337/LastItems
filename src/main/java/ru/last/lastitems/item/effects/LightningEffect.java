@@ -21,7 +21,6 @@ public class LightningEffect extends AbstractEffect {
     }
 
     public static LightningEffect parseShort(String target, String value) {
-        // [lightning] <amount> <cooldown spawn lightning> <fire time>
         String[] parts = value.split(" ");
         String a = parts.length >= 1 ? parts[0] : "1";
         TimeData t = parts.length >= 2 ? TimeData.parseString(parts[1]) : TimeData.parseString("0");
@@ -39,9 +38,7 @@ public class LightningEffect extends AbstractEffect {
     }
 
     @Override
-    protected String getContextKey() {
-        return "effects.lightning";
-    }
+    protected String getContextKey() { return "effects.lightning"; }
 
     @Override
     protected void execute(Entity target, TriggerContext context) {

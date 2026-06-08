@@ -7,10 +7,7 @@ import ru.last.lastitems.item.effects.*;
 import ru.last.lastitems.utils.ActionUtils;
 import ru.last.lastitems.utils.TimeData;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 
 public class EffectParser {
 
@@ -33,10 +30,7 @@ public class EffectParser {
 
         if (node.getRaw() instanceof String str) {
             Effect effect = parseShort(str, defaultTarget, plugin);
-            if (effect != null) effects.add(effect);
-            else {
-                effects.add(new MessageEffect(defaultTarget, str));
-            }
+            effects.add(Objects.requireNonNullElseGet(effect, () -> new MessageEffect(defaultTarget, str)));
             return effects;
         }
 
@@ -53,7 +47,6 @@ public class EffectParser {
         String value;
         TimeData timeData = null;
 
-        // Try to parse {time: ...} at the end
         if (line.endsWith("}")) {
             int timeStart = line.lastIndexOf("{time:");
             if (timeStart != -1) {

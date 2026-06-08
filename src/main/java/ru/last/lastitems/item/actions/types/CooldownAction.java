@@ -1,12 +1,10 @@
 package ru.last.lastitems.item.actions.types;
 
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import ru.last.lastitems.LastItemsFree;
 import ru.last.lastitems.item.TimeFormatter;
 import ru.last.lastitems.item.TriggerContext;
 import ru.last.lastitems.item.actions.Effect;
-import ru.last.lastitems.listeners.cooldown.CooldownCleanupListener;
 import ru.last.lastitems.utils.TimeData;
 
 import java.util.*;
@@ -14,7 +12,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class CooldownAction {
     public static final Set<CooldownAction> ALL_INSTANCES = Collections.newSetFromMap(new WeakHashMap<>());
-    private static boolean listenerRegistered = false;
 
     private final boolean enable;
     private final TimeData timeData;
@@ -28,26 +25,21 @@ public class CooldownAction {
         
         synchronized (ALL_INSTANCES) {
             ALL_INSTANCES.add(this);
-            if (!listenerRegistered) {
-                try {
-                    Bukkit.getPluginManager().registerEvents(new CooldownCleanupListener(), LastItemsFree.getInstance());
-                    listenerRegistered = true;
-                } catch (Exception ignored) {} 
-            }
         }
-    }
-
-    public Map<UUID, Long> getCooldowns() {
-        return cooldowns;
     }
 
     public boolean isOnCooldown(Player player) {
         if (!enable || player == null) return false;
-        boolean onCd = System.currentTimeMillis() < cooldowns.getOrDefault(player.getUniqueId(), 0L);
-        if (onCd) {
+        Long expireTime = cooldowns.get(player.getUniqueId());
+        if (expireTime == null) return false;
+        
+        long now = System.currentTimeMillis();
+        if (now < expireTime) {
             LastItemsFree.getInstance().getDebugLogger().info("Player " + player.getName() + " is on cooldown.");
+            return true;
         }
-        return onCd;
+        cooldowns.remove(player.getUniqueId());
+        return false;
     }
 
     public void setCooldown(Player player) {
@@ -75,5 +67,26 @@ public class CooldownAction {
         );
 
         effects.forEach(effect -> effect.execute(cdContext));
+    }
+
+    public static void removePlayer(UUID uuid) {
+        synchronized (ALL_INSTANCES) {
+            for (CooldownAction instance : ALL_INSTANCES) {
+                if (instance != null) {
+                    instance.cooldowns.remove(uuid);
+                }
+            }
+        }
+    }
+
+    public static void clearAll() {
+        synchronized (ALL_INSTANCES) {
+            for (CooldownAction instance : ALL_INSTANCES) {
+                if (instance != null) {
+                    instance.cooldowns.clear();
+                }
+            }
+            ALL_INSTANCES.clear();
+        }
     }
 }

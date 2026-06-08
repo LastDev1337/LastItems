@@ -32,8 +32,6 @@ public class PotionEffect extends AbstractEffect {
     }
 
     public static PotionEffect parseShort(String target, String value) {
-        // [potion] [give] <effect> <time> <level> <fall>
-        // [potion] [clear] <effect>
         String[] parts = value.split(" ");
         String modeStr = parts[0].toUpperCase(Locale.ROOT).replace("[", "").replace("]", "");
         PotionMode type = PotionMode.valueOf(modeStr);
@@ -60,16 +58,14 @@ public class PotionEffect extends AbstractEffect {
     }
 
     @Override
-    protected String getContextKey() {
-        return "effects.potion";
-    }
+    protected String getContextKey() { return "effects.potion"; }
 
     @Override
     protected void execute(Entity target, TriggerContext context) {
         if (!(target instanceof LivingEntity living)) return;
 
         if (type == PotionMode.GIVE && effectName != null) {
-            PotionEffectType actualType = null;
+            PotionEffectType actualType;
             if (effectName.equals("RANDOM")) {
                 PotionEffectType[] values = PotionEffectType.values();
                 do {

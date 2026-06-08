@@ -15,9 +15,7 @@ public class ActionBarEffect extends AbstractEffect {
     }
 
     @Override
-    protected String getContextKey() {
-        return "effects.actionbar";
-    }
+    protected String getContextKey() { return "effects.actionbar"; }
 
     @Override
     protected void execute(Entity target, TriggerContext context) {

@@ -9,8 +9,11 @@ import ru.last.lastitems.debug.*;
 import ru.last.lastitems.config.*;
 import ru.last.lastitems.item.*;
 import ru.last.lastitems.hooks.*;
+import ru.last.lastitems.listeners.cooldown.*;
 import ru.last.lastitems.listeners.items.*;
 import ru.last.lastitems.item.triggers.*;
+import ru.last.lastitems.item.actions.types.*;
+import ru.last.lastitems.utils.*;
 
 public class LastItemsFree extends JavaPlugin {
 
@@ -22,7 +25,6 @@ public class LastItemsFree extends JavaPlugin {
     private ConfigManager configManager;
     private MainCommand mainCommand;
     private ItemDropListener itemDropListener;
-    private boolean isPlaceholderAPIEnabled = false;
 
     @Override
     public void onEnable() {
@@ -33,6 +35,8 @@ public class LastItemsFree extends JavaPlugin {
         this.debugLogger = new DebugLogger(configManager.getMainConfig());
         getLogger().info("enabling...");
 
+        PlaceholderUtil.init();
+
         this.actionCounterKey = new NamespacedKey(this, "action_counter");
 
         this.itemRegistry = new ItemRegistry(this);
@@ -41,7 +45,6 @@ public class LastItemsFree extends JavaPlugin {
 
         if (getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
             PlaceHook.init(this.itemRegistry);
-            this.isPlaceholderAPIEnabled = true;
             this.debugLogger.info("PlaceholderAPI hooked!");
         }
 
@@ -68,6 +71,7 @@ public class LastItemsFree extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new ItemMiscTrigger(itemRegistry), this);
 
         getServer().getPluginManager().registerEvents(new InfiniteItemListener(itemRegistry), this);
+        getServer().getPluginManager().registerEvents(new CooldownCleanupListener(), this);
 
         int pluginId = 31662;
         Metrics metrics = new Metrics(this, pluginId);
@@ -91,6 +95,9 @@ public class LastItemsFree extends JavaPlugin {
             mainCommand.unregister();
         }
 
+        CooldownAction.clearAll();
+        instance = null;
+
         getLogger().info("disabling successfully!");
     }
 
@@ -100,5 +107,4 @@ public class LastItemsFree extends JavaPlugin {
     public DebugLogger getDebugLogger() { return debugLogger; }
     public NamespacedKey getActionCounterKey() { return actionCounterKey; }
     public ItemLoader getItemLoader() { return itemLoader; }
-    public boolean isPlaceholderAPIEnabled() { return isPlaceholderAPIEnabled; }
 }

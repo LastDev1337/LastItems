@@ -27,7 +27,6 @@ public class TitleEffect extends AbstractEffect {
     }
 
     public static TitleEffect parseShort(String target, String value) {
-        // [title] "<title>\n<subtitle>" <in;stay;out>
         Pattern pattern = Pattern.compile("\"([^\"]*)\"(?:\\s+(.*))?");
         Matcher matcher = pattern.matcher(value);
         
@@ -68,9 +67,7 @@ public class TitleEffect extends AbstractEffect {
     }
 
     @Override
-    protected String getContextKey() {
-        return "effects.title";
-    }
+    protected String getContextKey() { return "effects.title"; }
 
     @Override
     protected void execute(Entity target, TriggerContext context) {

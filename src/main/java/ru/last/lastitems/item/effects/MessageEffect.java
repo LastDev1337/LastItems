@@ -15,9 +15,7 @@ public class MessageEffect extends AbstractEffect {
     }
 
     @Override
-    protected String getContextKey() {
-        return "effects.message";
-    }
+    protected String getContextKey() { return "effects.message"; }
 
     @Override
     protected void execute(org.bukkit.command.CommandSender target, TriggerContext context) {

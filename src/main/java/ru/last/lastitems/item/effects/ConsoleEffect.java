@@ -1,17 +1,14 @@
 package ru.last.lastitems.item.effects;
 
 import dev.by1337.yaml.YamlMap;
-import dev.by1337.yaml.YamlValue;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.Player;
 import ru.last.lastitems.utils.PlaceholderUtil;
 import ru.last.lastitems.item.TriggerContext;
 import ru.last.lastitems.utils.ChatUtils;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class ConsoleEffect extends AbstractEffect {
@@ -50,9 +47,7 @@ public class ConsoleEffect extends AbstractEffect {
     }
 
     @Override
-    protected String getContextKey() {
-        return isMessage ? "effects.console.msg" : "effects.console.cmd";
-    }
+    protected String getContextKey() { return isMessage ? "effects.console.msg" : "effects.console.cmd"; }
 
     @Override
     protected void execute(org.bukkit.command.CommandSender target, TriggerContext context) {

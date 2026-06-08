@@ -1,5 +1,5 @@
 name: LastItems
-version: '0.2.3.1'
+version: '0.2.4'
 
 dependencies:
   server:
@@ -14,5 +14,5 @@ main: ru.last.lastitems.LastItemsFree
 api-version: '1.19'
 author: Last
 
-description: "Плагин для кастомных предметов на 1.16.5 - 1.21.11"
-website: "https://wiki.lastdev.space/lastitems"
+description: "Плагин для кастомных предметов на 1.16.5 - 26.1.2"
+website: "https://wiki.laststudio.space/lastitems"

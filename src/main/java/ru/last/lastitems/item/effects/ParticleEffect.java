@@ -199,9 +199,7 @@ public class ParticleEffect extends AbstractEffect {
     }
 
     @Override
-    protected String getContextKey() {
-        return "effects.particle";
-    }
+    protected String getContextKey() { return "effects.particle"; }
 
     @Override
     protected void execute(Entity target, TriggerContext context) {

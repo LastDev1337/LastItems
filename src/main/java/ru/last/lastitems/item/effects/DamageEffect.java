@@ -17,7 +17,6 @@ public class DamageEffect extends AbstractEffect {
     }
 
     public static DamageEffect parseShort(String target, String value) {
-        // [damage] <amount> [type]
         String[] parts = value.split(" ");
         String amt = parts[0];
         String t = parts.length > 1 ? parts[1] : "default";
@@ -29,9 +28,7 @@ public class DamageEffect extends AbstractEffect {
     }
 
     @Override
-    protected String getContextKey() {
-        return "effects.damage";
-    }
+    protected String getContextKey() { return "effects.damage"; }
 
     @Override
     protected void execute(Entity target, TriggerContext context) {
