@@ -7,10 +7,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.inventory.ItemStack;
-import ru.last.lastitems.item.ActionTrigger;
-import ru.last.lastitems.item.CustomItem;
-import ru.last.lastitems.item.ItemRegistry;
-import ru.last.lastitems.item.TriggerContext;
+import ru.last.lastitems.item.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -20,9 +17,7 @@ public class PlayerMovementJumpTrigger implements Listener {
     private final ItemRegistry itemRegistry;
     private final Map<UUID, Integer> lastJumps = new HashMap<>();
 
-    public PlayerMovementJumpTrigger(ItemRegistry itemRegistry) {
-        this.itemRegistry = itemRegistry;
-    }
+    public PlayerMovementJumpTrigger(ItemRegistry itemRegistry) { this.itemRegistry = itemRegistry; }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onMove(PlayerMoveEvent event) {

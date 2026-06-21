@@ -3,6 +3,7 @@ package ru.last.lastitems.item.effects;
 import dev.by1337.yaml.YamlMap;
 import org.bukkit.entity.Entity;
 import org.bukkit.util.Vector;
+import ru.last.lastitems.api.effects.KnockbackEffectEvent;
 import ru.last.lastitems.item.TriggerContext;
 import ru.last.lastitems.utils.DynamicUtil;
 
@@ -36,6 +37,9 @@ public class KnockbackEffect extends AbstractEffect {
 
     @Override
     protected void execute(Entity target, TriggerContext context) {
+        KnockbackEffectEvent event = new KnockbackEffectEvent(target, context);
+        org.bukkit.Bukkit.getPluginManager().callEvent(event);
+        if (event.isCancelled()) return;
         double strength = DynamicUtil.evaluate(strengthExpr, context);
         double vertical = DynamicUtil.evaluate(verticalExpr, context);
         Vector dir = target.getLocation().toVector().subtract(context.player().getLocation().toVector()).normalize();

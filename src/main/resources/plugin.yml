@@ -1,8 +1,8 @@
 name: LastItems
-version: '0.2.4'
+version: '0.2.5-BETA'
 
 depend: [ BLib ]
-softdepend: [ PlaceholderAPI ]
+softdepend: [ PlaceholderAPI, LastMines ]
 
 main: ru.last.lastitems.LastItemsFree
 api-version: "1.16"

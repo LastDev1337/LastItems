@@ -1,5 +1,6 @@
 package ru.last.lastitems.item.effects;
 
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import ru.last.lastitems.item.TargetResolver;
 import ru.last.lastitems.item.TriggerContext;
@@ -13,13 +14,9 @@ public abstract class AbstractEffect implements Effect {
     protected final String targetSelector;
     protected TimeData timeData;
 
-    protected AbstractEffect(String targetSelector) {
-        this.targetSelector = targetSelector;
-    }
+    protected AbstractEffect(String targetSelector) { this.targetSelector = targetSelector; }
 
-    public void setTimeData(TimeData timeData) {
-        this.timeData = timeData;
-    }
+    public void setTimeData(TimeData timeData) { this.timeData = timeData; }
 
     @Override
     public void execute(TriggerContext context) {
@@ -47,11 +44,7 @@ public abstract class AbstractEffect implements Effect {
 
     protected abstract String getContextKey();
 
-    protected void execute(org.bukkit.command.CommandSender target, TriggerContext context) {
-        if (target instanceof Entity e) {
-            execute(e, context);
-        }
-    }
+    protected void execute(CommandSender target, TriggerContext context) { if (target instanceof Entity e) execute(e, context); }
 
     protected abstract void execute(Entity target, TriggerContext context);
 }

@@ -60,7 +60,5 @@ public record TimeData(String expression, String unit, String format) {
         };
     }
 
-    public long getMillis(TriggerContext context) {
-        return getTicks(context) * 50L;
-    }
+    public long getMillis(TriggerContext context) { return getTicks(context) * 50L; }
 }

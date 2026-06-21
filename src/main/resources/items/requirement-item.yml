@@ -1,0 +1,47 @@
+item:
+  id: req-item
+  material: diamond_sword
+  enchanted: true
+  name: '<light_purple>Меч с Проверкой</light_purple>'
+  lore:
+    - ''
+    - ' &fПри нажатии ШИФТ+ПКМ, все игроки в радиусе 30 блоков через'
+    - ' &fсекунду будут подкинуты вверх, но данный меч получит задержку'
+    - ''
+  model_data: 10
+  all_flags: true
+
+cooldown:
+  enable: true
+  # таймер 15 секунд. в тиках можно поставить время, будет 300t (300ticks)
+  time: 15s
+  # теперь вместо messages секции тут будет effects, который
+  # как раз таки будет выводить все эффекты из плагина
+  effects: [ ]
+
+actions:
+  # новый триггер
+  - trigger: on_shift_right_click
+    value: 1
+    chance: 100.0
+
+    effects:
+      - if: '{COOLDOWN} == false'
+        do:
+          # новый эффект
+          # [delay] [target] <time> {<effect1>;<effect2>;<effect3>;...;<effectN>}
+          # [delay] [player] 1s {knockback: 3.0 0.6; actionbar: "&aСпособность была использована!" 2s}
+          - delay:
+              time: 1s
+              effects:
+                - knockback: '3.0 0.6'
+                # новый вид эффекта actionbar
+                # [actionbar] "<text>" <time> [ticking (true/false)]
+                # если аргумент 'ticking' будет true, то actionbar будет обновляться каждую N секунду
+                # из аргумента 'time'
+                # если аргумента 'ticking' будет false или вообще не будет, то аргумент 'time' будет отвечать
+                # сколько времени будет данное actionbar сообщение
+                - actionbar: '"&aСпособность была использована!" 2s'
+        else:
+          # таймер можно выводить и подчёркиванием -> %time_<format>%
+          - actionbar: '"&cСпособность перезаряжется! Подождите &6%time:detail%!" 1 true'

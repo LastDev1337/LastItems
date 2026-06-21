@@ -7,33 +7,26 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import ru.last.lastitems.LastItemsFree;
 import ru.last.lastitems.item.*;
 
 import java.util.List;
 
 public class PlaceHook extends PlaceholderExpansion {
 
+    private final LastItemsFree plugin;
     private final ItemRegistry itemRegistry;
 
-    public PlaceHook(@NotNull ItemRegistry itemRegistry) {
-        this.itemRegistry = itemRegistry;
-    }
+    public PlaceHook(LastItemsFree plugin, @NotNull ItemRegistry itemRegistry) {
+        this.plugin = plugin;
+        this.itemRegistry = itemRegistry; }
 
-    public static void init(ItemRegistry itemRegistry) {
-        new PlaceHook(itemRegistry).register();
-    }
+    public static void init(ItemRegistry itemRegistry) { new PlaceHook(LastItemsFree.getInstance(), itemRegistry).register(); }
 
-    @Override
-    public @NotNull String getIdentifier() { return "lastitems"; }
-
-    @Override
-    public @NotNull String getAuthor() { return "Last"; }
-
-    @Override
-    public @NotNull String getVersion() { return "0.2.2"; }
-
-    @Override
-    public boolean persist() { return true; }
+    @Override public @NotNull String getIdentifier() { return "lastitems"; }
+    @Override public @NotNull String getAuthor() { return "Last"; }
+    @Override @SuppressWarnings("deprecation") public @NotNull String getVersion() { return plugin.getDescription().getVersion(); }
+    @Override public boolean persist() { return true; }
 
     @Override
     public @Nullable String onRequest(OfflinePlayer player, @NotNull String params) {

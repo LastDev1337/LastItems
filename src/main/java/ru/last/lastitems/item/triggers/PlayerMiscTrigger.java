@@ -5,17 +5,13 @@ import org.bukkit.event.*;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.ItemStack;
-import ru.last.lastitems.item.ActionTrigger;
-import ru.last.lastitems.item.CustomItem;
-import ru.last.lastitems.item.ItemRegistry;
-import ru.last.lastitems.item.TriggerContext;
+import ru.last.lastitems.item.*;
+import ru.last.lastitems.item.effects.*;
 
 public class PlayerMiscTrigger implements Listener {
     private final ItemRegistry itemRegistry;
 
-    public PlayerMiscTrigger(ItemRegistry itemRegistry) {
-        this.itemRegistry = itemRegistry;
-    }
+    public PlayerMiscTrigger(ItemRegistry itemRegistry) { this.itemRegistry = itemRegistry; }
 
     private void execute(Player player, ActionTrigger trigger, Event event) {
         for (ItemStack item : player.getInventory().getContents()) {
@@ -47,6 +43,9 @@ public class PlayerMiscTrigger implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onBucketEmpty(PlayerBucketEmptyEvent event) { execute(event.getPlayer(), ActionTrigger.ON_BUCKET_EMPTY, event); }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) { BossBarEffect.clear(event.getPlayer().getUniqueId()); }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onDeath(EntityDeathEvent event) {

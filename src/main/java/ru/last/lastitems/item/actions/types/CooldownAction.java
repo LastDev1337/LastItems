@@ -28,6 +28,8 @@ public class CooldownAction {
         }
     }
 
+    public boolean isEnable() { return enable; }
+
     public boolean isOnCooldown(Player player) {
         if (!enable || player == null) return false;
         Long expireTime = cooldowns.get(player.getUniqueId());

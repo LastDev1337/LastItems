@@ -9,10 +9,7 @@ import org.bukkit.event.player.PlayerItemBreakEvent;
 import org.bukkit.event.player.PlayerItemMendEvent;
 import org.bukkit.event.player.PlayerShearEntityEvent;
 import org.bukkit.inventory.ItemStack;
-import ru.last.lastitems.item.ActionTrigger;
-import ru.last.lastitems.item.CustomItem;
-import ru.last.lastitems.item.ItemRegistry;
-import ru.last.lastitems.item.TriggerContext;
+import ru.last.lastitems.item.*;
 
 public class ItemMiscTrigger implements Listener {
     private final ItemRegistry itemRegistry;
@@ -35,7 +32,7 @@ public class ItemMiscTrigger implements Listener {
     public void onShear(PlayerShearEntityEvent event) {
         Player player = event.getPlayer();
         ItemStack item = player.getInventory().getItemInMainHand();
-        if (item == null || item.getType().isAir()) item = player.getInventory().getItemInOffHand();
+        if (item.getType().isAir()) item = player.getInventory().getItemInOffHand();
         
         CustomItem ci = itemRegistry.getCustomItem(item);
         if (ci != null) {

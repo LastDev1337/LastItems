@@ -4,6 +4,7 @@ import dev.by1337.yaml.YamlMap;
 import org.bukkit.Material;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import ru.last.lastitems.api.effects.DisableItemsEffectEvent;
 import ru.last.lastitems.item.TriggerContext;
 import ru.last.lastitems.utils.TimeData;
 
@@ -40,6 +41,9 @@ public class DisableItemsEffect extends AbstractEffect {
 
     @Override
     protected void execute(Entity target, TriggerContext context) {
+        DisableItemsEffectEvent event = new DisableItemsEffectEvent(target, context);
+        org.bukkit.Bukkit.getPluginManager().callEvent(event);
+        if (event.isCancelled()) return;
         if (target instanceof Player player && vanilla && material != null) {
             player.setCooldown(material, timeData.getTicks(context));
         }

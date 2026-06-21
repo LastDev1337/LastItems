@@ -4,6 +4,7 @@ import dev.by1337.yaml.YamlMap;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import ru.last.lastitems.LastItemsFree;
+import ru.last.lastitems.api.effects.LightningEffectEvent;
 import ru.last.lastitems.item.TriggerContext;
 import ru.last.lastitems.utils.DynamicUtil;
 import ru.last.lastitems.utils.TimeData;
@@ -42,6 +43,9 @@ public class LightningEffect extends AbstractEffect {
 
     @Override
     protected void execute(Entity target, TriggerContext context) {
+        LightningEffectEvent event = new LightningEffectEvent(target, context);
+        org.bukkit.Bukkit.getPluginManager().callEvent(event);
+        if (event.isCancelled()) return;
         int amount = DynamicUtil.evaluateInt(amountExpr, context);
         int cooldown = cooldownTime.getTicks(context);
         int fTime = fireTime.getTicks(context);

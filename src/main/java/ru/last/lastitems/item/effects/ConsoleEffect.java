@@ -3,6 +3,7 @@ package ru.last.lastitems.item.effects;
 import dev.by1337.yaml.YamlMap;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
+import ru.last.lastitems.api.effects.ConsoleEffectEvent;
 import ru.last.lastitems.utils.PlaceholderUtil;
 import ru.last.lastitems.item.TriggerContext;
 import ru.last.lastitems.utils.ChatUtils;
@@ -71,6 +72,9 @@ public class ConsoleEffect extends AbstractEffect {
 
     @Override
     protected void execute(Entity target, TriggerContext context) {
+        ConsoleEffectEvent event = new ConsoleEffectEvent(target, context);
+        org.bukkit.Bukkit.getPluginManager().callEvent(event);
+        if (event.isCancelled()) return;
         execute((org.bukkit.command.CommandSender) target, context);
     }
 }

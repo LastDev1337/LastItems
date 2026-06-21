@@ -3,17 +3,16 @@ package ru.last.lastitems.item.effects;
 import dev.by1337.yaml.YamlMap;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
+import ru.last.lastitems.api.effects.DamageEffectEvent;
 import ru.last.lastitems.item.TriggerContext;
 import ru.last.lastitems.utils.DynamicUtil;
 
 public class DamageEffect extends AbstractEffect {
     private final String amountExpr;
-    private final String type;
 
     public DamageEffect(String targetSelector, String amountExpr, String type) {
         super(targetSelector);
         this.amountExpr = amountExpr;
-        this.type = type;
     }
 
     public static DamageEffect parseShort(String target, String value) {
@@ -32,6 +31,9 @@ public class DamageEffect extends AbstractEffect {
 
     @Override
     protected void execute(Entity target, TriggerContext context) {
+        DamageEffectEvent event = new DamageEffectEvent(target, context);
+        org.bukkit.Bukkit.getPluginManager().callEvent(event);
+        if (event.isCancelled()) return;
         if (target instanceof LivingEntity living) {
             double amount = DynamicUtil.evaluate(amountExpr, context);
             living.damage(amount, context.player());

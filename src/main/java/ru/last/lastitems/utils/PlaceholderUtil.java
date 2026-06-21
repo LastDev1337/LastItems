@@ -15,11 +15,9 @@ import org.bukkit.entity.Damageable;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 
-import ru.last.lastitems.item.TimeFormatter;
-import ru.last.lastitems.item.TriggerContext;
+import ru.last.lastitems.item.*;
 
 import java.util.Locale;
-import java.util.Map;
 
 public final class PlaceholderUtil {
 
@@ -61,6 +59,27 @@ public final class PlaceholderUtil {
         if (context.replacements() != null) {
             for (java.util.Map.Entry<String, String> entry : context.replacements().entrySet()) {
                 result = result.replace(entry.getKey(), entry.getValue());
+            }
+            if (context.replacements().containsKey("internal_cooldown_millis")) {
+                long millis = Long.parseLong(context.replacements().get("internal_cooldown_millis"));
+                
+                if (result.contains("{COOLDOWN_TIME:") || result.contains("{COOLDOWN:")) {
+                    java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\{COOLDOWN(?:_TIME)?:([^}]+)}").matcher(result);
+                    while (m.find()) {
+                        String format = m.group(1);
+                        result = result.replace(m.group(), TimeFormatter.format(millis, format, "cooldown"));
+                    }
+                }
+                if (result.contains("{COOLDOWN_TIME}")) {
+                    result = result.replace("{COOLDOWN_TIME}", TimeFormatter.format(millis, "default", "cooldown"));
+                }
+                if (result.contains("{COOLDOWN}")) {
+                    result = result.replace("{COOLDOWN}", TimeFormatter.format(millis, "default", "cooldown"));
+                }
+                if (result.contains("{COOLDOWN_STATUS}")) {
+                    String status = millis > 0 ? "cooldown" : "ready";
+                    result = result.replace("{COOLDOWN_STATUS}", status);
+                }
             }
         }
         

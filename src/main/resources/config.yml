@@ -21,3 +21,7 @@ modules:
   # all: true
   folder: true
   time-format: true
+
+economy:
+  enable: false
+  provider: Vault # Vault, VaultUnlocked, PlayerPoints

@@ -3,7 +3,6 @@ package ru.last.lastitems.item;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.event.block.BlockEvent;
 
 import java.util.Collection;
 import java.util.List;
@@ -35,7 +34,14 @@ public final class TargetResolver {
             case "victim:player" -> context.victim() instanceof Player ? List.of(context.victim()) : List.of();
             case "victim" -> context.victim() != null ? List.of(context.victim()) : List.of();
             case "block" -> context.player() != null ? List.of(context.player()) : List.of();
-            default -> context.player() != null ? List.of(context.player()) : List.of();
+            default -> {
+                ru.last.lastitems.api.LastItemsAPI.CustomTargetResolver resolver = ru.last.lastitems.api.LastItemsAPI.getInstance().getCustomTargets().get(lower);
+                if (resolver != null) {
+                    Collection<? extends Entity> res = resolver.resolve(context);
+                    yield res != null ? res : List.of();
+                }
+                yield context.player() != null ? List.of(context.player()) : List.of();
+            }
         };
     }
 }

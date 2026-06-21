@@ -7,10 +7,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.ItemStack;
-import ru.last.lastitems.item.ActionTrigger;
-import ru.last.lastitems.item.CustomItem;
-import ru.last.lastitems.item.ItemRegistry;
-import ru.last.lastitems.item.TriggerContext;
+import ru.last.lastitems.item.*;
 
 public class SwappingTrigger implements Listener {
     private final ItemRegistry itemRegistry;

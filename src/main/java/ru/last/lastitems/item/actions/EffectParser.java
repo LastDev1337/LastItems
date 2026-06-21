@@ -3,6 +3,7 @@ package ru.last.lastitems.item.actions;
 import dev.by1337.yaml.YamlMap;
 import dev.by1337.yaml.YamlValue;
 import ru.last.lastitems.LastItemsFree;
+import ru.last.lastitems.api.LastItemsAPI;
 import ru.last.lastitems.item.effects.*;
 import ru.last.lastitems.utils.ActionUtils;
 import ru.last.lastitems.utils.TimeData;
@@ -13,7 +14,8 @@ public class EffectParser {
 
     private static final List<String> SUPPORTED_TAGS = Arrays.asList(
             "message", "chat", "console", "actionbar", "title", "particle",
-            "knockback", "lightning", "potion", "damage", "freeze", "blocks", "disable_items"
+            "knockback", "lightning", "potion", "damage", "freeze", "blocks", "disable_items",
+            "vault", "vault_unlocked", "playerpoints", "eco", "economy", "burn", "bossbar", "invulnerable", "god"
     );
 
     public static List<Effect> parse(YamlValue node, String defaultTarget, LastItemsFree plugin) {
@@ -77,7 +79,7 @@ public class EffectParser {
             }
         }
 
-        if (!SUPPORTED_TAGS.contains(tag)) return null;
+        if (!SUPPORTED_TAGS.contains(tag) && !ru.last.lastitems.api.LastItemsAPI.getInstance().getCustomEffects().containsKey(tag)) return null;
 
         Effect effect = parseByTag(tag, value, defaultTarget, plugin);
         if (effect instanceof AbstractEffect ae && timeData != null) {
@@ -92,6 +94,22 @@ public class EffectParser {
         TimeData timeData = map.has("time") ? TimeData.parse(map.get("time"), "0") : null;
 
         if (type.isEmpty()) {
+            if (map.has("if")) {
+                Effect effect = ConditionEffect.parseFull(map, defaultTarget, plugin);
+                AbstractEffect ae = (AbstractEffect) effect;
+                if (timeData != null) {
+                    ae.setTimeData(timeData);
+                }
+                return effect;
+            }
+            if (map.has("delay")) {
+                Effect effect = DelayEffect.parseFull(map, defaultTarget, plugin);
+                AbstractEffect ae = (AbstractEffect) effect;
+                if (timeData != null) {
+                    ae.setTimeData(timeData);
+                }
+                return effect;
+            }
             for (String tag : SUPPORTED_TAGS) {
                 if (map.has(tag)) {
                     String value = map.get(tag).asString("");
@@ -115,9 +133,16 @@ public class EffectParser {
             case "potion" -> PotionEffect.parseFull(target, map);
             case "damage" -> DamageEffect.parseFull(target, map);
             case "freeze" -> FreezeEffect.parseFull(target, map);
+            case "burn" -> BurnEffect.parseFull(target, map);
+            case "invulnerable", "god" -> InvulnerableEffect.parseFull(target, map);
+            case "bossbar" -> BossBarEffect.parseFull(target, map);
             case "blocks" -> BlocksEffect.parseFull(target, map);
             case "disable_items" -> DisableItemsEffect.parseFull(target, map);
-            default -> null;
+            case "vault", "vault_unlocked", "playerpoints", "economy", "eco" -> EconomyEffect.parseFull(target, map);
+            default -> {
+                LastItemsAPI.CustomEffectParser parser = LastItemsAPI.getInstance().getCustomEffects().get(type);
+                yield parser != null ? parser.parseFull(target, map) : null;
+            }
         };
 
         if (effect instanceof AbstractEffect ae && timeData != null) {
@@ -173,9 +198,16 @@ public class EffectParser {
             case "potion" -> PotionEffect.parseShort(target, value);
             case "damage" -> DamageEffect.parseShort(target, value);
             case "freeze" -> FreezeEffect.parseShort(target, value);
+            case "burn" -> BurnEffect.parseShort(target, value);
+            case "invulnerable", "god" -> InvulnerableEffect.parseShort(target, value);
+            case "bossbar" -> BossBarEffect.parseShort(target, value);
             case "blocks" -> BlocksEffect.parseShort(target, value);
             case "disable_items" -> DisableItemsEffect.parseShort(target, value);
-            default -> null;
+            case "vault", "vault_unlocked", "playerpoints", "economy", "eco" -> EconomyEffect.parseShort(target, value);
+            default -> {
+                LastItemsAPI.CustomEffectParser parser = LastItemsAPI.getInstance().getCustomEffects().get(tag);
+                yield parser != null ? parser.parseShort(target, value) : null;
+            }
         };
     }
 }

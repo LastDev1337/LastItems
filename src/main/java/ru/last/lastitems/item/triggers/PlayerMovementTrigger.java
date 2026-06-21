@@ -6,17 +6,12 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.ItemStack;
-import ru.last.lastitems.item.ActionTrigger;
-import ru.last.lastitems.item.CustomItem;
-import ru.last.lastitems.item.ItemRegistry;
-import ru.last.lastitems.item.TriggerContext;
+import ru.last.lastitems.item.*;
 
 public class PlayerMovementTrigger implements Listener {
     private final ItemRegistry itemRegistry;
 
-    public PlayerMovementTrigger(ItemRegistry itemRegistry) {
-        this.itemRegistry = itemRegistry;
-    }
+    public PlayerMovementTrigger(ItemRegistry itemRegistry) { this.itemRegistry = itemRegistry; }
 
     private void execute(Player player, ActionTrigger trigger, PlayerEvent event) {
         for (ItemStack item : player.getInventory().getContents()) {

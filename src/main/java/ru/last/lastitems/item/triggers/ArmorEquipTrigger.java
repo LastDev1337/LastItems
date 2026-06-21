@@ -8,17 +8,13 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
-import ru.last.lastitems.item.ActionTrigger;
-import ru.last.lastitems.item.CustomItem;
-import ru.last.lastitems.item.ItemRegistry;
-import ru.last.lastitems.item.TriggerContext;
+import ru.last.lastitems.api.events.*;
+import ru.last.lastitems.item.*;
 
 public class ArmorEquipTrigger implements Listener {
     private final ItemRegistry itemRegistry;
 
-    public ArmorEquipTrigger(ItemRegistry itemRegistry) {
-        this.itemRegistry = itemRegistry;
-    }
+    public ArmorEquipTrigger(ItemRegistry itemRegistry) { this.itemRegistry = itemRegistry; }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInventoryClick(InventoryClickEvent event) {
@@ -41,6 +37,9 @@ public class ArmorEquipTrigger implements Listener {
         if (item == null || item.getType().isAir()) return;
         CustomItem ci = itemRegistry.getCustomItem(item);
         if (ci != null) {
+            LastItemEquipEvent equipEvent = new LastItemEquipEvent(player, ci);
+            org.bukkit.Bukkit.getPluginManager().callEvent(equipEvent);
+            if (equipEvent.isCancelled()) return;
             ci.executeTrigger(ActionTrigger.ON_EQUIP, new TriggerContext(player, item, null, null));
         }
     }

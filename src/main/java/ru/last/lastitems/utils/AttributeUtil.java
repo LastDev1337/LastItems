@@ -12,7 +12,7 @@ public class AttributeUtil {
         String upperName = name.toUpperCase();
 
         try {
-            // 1.16.5 - 1.21.1
+            // 1.16.5 - 1.21.2
             Method valueOfMethod = Attribute.class.getMethod("valueOf", String.class);
             try {
                 return (Attribute) valueOfMethod.invoke(null, upperName);

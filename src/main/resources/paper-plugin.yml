@@ -1,5 +1,5 @@
 name: LastItems
-version: '0.2.4'
+version: '0.2.5-BETA'
 
 dependencies:
   server:
@@ -7,6 +7,9 @@ dependencies:
       load: BEFORE
       required: true
     PlaceholderAPI:
+      load: BEFORE
+      required: false
+    LastMines:
       load: BEFORE
       required: false
 

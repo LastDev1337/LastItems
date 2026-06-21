@@ -7,6 +7,7 @@ import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.entity.Entity;
 import org.bukkit.inventory.ItemStack;
+import ru.last.lastitems.api.effects.ParticleEffectEvent;
 import ru.last.lastitems.item.TriggerContext;
 import ru.last.lastitems.utils.DynamicUtil;
 
@@ -67,7 +68,7 @@ public class ParticleEffect extends AbstractEffect {
         
         String ox = "0", oy = "1.0", oz = "0";
 
-        Pattern pattern = Pattern.compile("^(\\S+)\\s+(\\S+)\\s+(\\S+)(?:\\s+\\{data:\\s*([^}]+)\\})?(?:\\s+\\{shape:\\s*([^}]+)\\})?(?:\\s+(\\S+))?");
+        Pattern pattern = Pattern.compile("^(\\S+)\\s+(\\S+)\\s+(\\S+)(?:\\s+\\{data:\\s*([^}]+)})?(?:\\s+\\{shape:\\s*([^}]+)})?(?:\\s+(\\S+))?");
         Matcher matcher = pattern.matcher(value);
 
         if (matcher.find()) {
@@ -203,6 +204,9 @@ public class ParticleEffect extends AbstractEffect {
 
     @Override
     protected void execute(Entity target, TriggerContext context) {
+        ParticleEffectEvent event = new ParticleEffectEvent(target, context);
+        org.bukkit.Bukkit.getPluginManager().callEvent(event);
+        if (event.isCancelled()) return;
         double ox = DynamicUtil.evaluate(offsetXExpr, context);
         double oy = DynamicUtil.evaluate(offsetYExpr, context);
         double oz = DynamicUtil.evaluate(offsetZExpr, context);
@@ -239,30 +243,33 @@ public class ParticleEffect extends AbstractEffect {
             if (material != null && material.isBlock()) data = material.createBlockData();
         }
 
-        if (shapeType.equals("point")) {
-            spawn(loc, count, speed, data);
-        } else if (shapeType.equals("circle")) {
-            int particles = Math.max(1, count);
-            for (int i = 0; i < particles; i++) {
-                double angle = 2 * Math.PI * i / particles;
-                Location pLoc = loc.clone().add(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
-                spawnSingle(pLoc, speed, data);
+        switch (shapeType) {
+            case "point" -> spawn(loc, count, speed, data);
+            case "circle" -> {
+                int particles = Math.max(1, count);
+                for (int i = 0; i < particles; i++) {
+                    double angle = 2 * Math.PI * i / particles;
+                    Location pLoc = loc.clone().add(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
+                    spawnSingle(pLoc, speed, data);
+                }
             }
-        } else if (shapeType.equals("spiral")) {
-            int particles = Math.max(1, count);
-            for (int i = 0; i < particles; i++) {
-                double angle = 2 * Math.PI * i / 20.0;
-                double y = height * i / particles;
-                Location pLoc = loc.clone().add(Math.cos(angle) * radius, y, Math.sin(angle) * radius);
-                spawnSingle(pLoc, speed, data);
+            case "spiral" -> {
+                int particles = Math.max(1, count);
+                for (int i = 0; i < particles; i++) {
+                    double angle = 2 * Math.PI * i / 20.0;
+                    double y = height * i / particles;
+                    Location pLoc = loc.clone().add(Math.cos(angle) * radius, y, Math.sin(angle) * radius);
+                    spawnSingle(pLoc, speed, data);
+                }
             }
-        } else if (shapeType.equals("line")) {
-            int particles = Math.max(1, count);
-            org.bukkit.util.Vector dir = loc.getDirection().normalize().multiply(radius / particles);
-            Location pLoc = loc.clone();
-            for (int i = 0; i < particles; i++) {
-                pLoc.add(dir);
-                spawnSingle(pLoc, speed, data);
+            case "line" -> {
+                int particles = Math.max(1, count);
+                org.bukkit.util.Vector dir = loc.getDirection().normalize().multiply(radius / particles);
+                Location pLoc = loc.clone();
+                for (int i = 0; i < particles; i++) {
+                    pLoc.add(dir);
+                    spawnSingle(pLoc, speed, data);
+                }
             }
         }
     }

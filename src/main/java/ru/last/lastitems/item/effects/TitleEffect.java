@@ -3,6 +3,7 @@ package ru.last.lastitems.item.effects;
 import dev.by1337.yaml.YamlMap;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import ru.last.lastitems.api.effects.TitleEffectEvent;
 import ru.last.lastitems.utils.PlaceholderUtil;
 import ru.last.lastitems.item.TriggerContext;
 import ru.last.lastitems.utils.ChatUtils;
@@ -69,8 +70,12 @@ public class TitleEffect extends AbstractEffect {
     @Override
     protected String getContextKey() { return "effects.title"; }
 
+    @SuppressWarnings("deprecation")
     @Override
     protected void execute(Entity target, TriggerContext context) {
+        TitleEffectEvent event = new TitleEffectEvent(target, context);
+        org.bukkit.Bukkit.getPluginManager().callEvent(event);
+        if (event.isCancelled()) return;
         if (!(target instanceof Player player)) return;
 
         String pt = PlaceholderUtil.replace(title, context, player);

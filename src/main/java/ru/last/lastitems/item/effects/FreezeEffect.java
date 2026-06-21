@@ -2,6 +2,7 @@ package ru.last.lastitems.item.effects;
 
 import dev.by1337.yaml.YamlMap;
 import org.bukkit.entity.Entity;
+import ru.last.lastitems.api.effects.FreezeEffectEvent;
 import ru.last.lastitems.item.TriggerContext;
 import ru.last.lastitems.utils.TimeData;
 
@@ -27,6 +28,9 @@ public class FreezeEffect extends AbstractEffect {
 
     @Override
     protected void execute(Entity target, TriggerContext context) {
+        FreezeEffectEvent event = new FreezeEffectEvent(target, context);
+        org.bukkit.Bukkit.getPluginManager().callEvent(event);
+        if (event.isCancelled()) return;
         try {
             target.setFreezeTicks(timeData.getTicks(context));
         } catch (NoSuchMethodError e) {

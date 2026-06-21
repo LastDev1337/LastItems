@@ -11,6 +11,7 @@ public class MainConfig {
     private final int limitGive;
     private final int limitTake;
     private final ModulesSettings modules;
+    private final EconomySettings economy;
 
     public MainConfig(YamlMap rootMap) {
         YamlValue debugNode = rootMap.get("debug");
@@ -49,6 +50,7 @@ public class MainConfig {
         }
 
         this.modules = new ModulesSettings(getSection(rootMap, "modules"));
+        this.economy = new EconomySettings(getSection(rootMap, "economy"));
     }
 
     private YamlMap getSection(YamlMap map, String key) {
@@ -63,4 +65,18 @@ public class MainConfig {
     public int getLimitGive() { return limitGive; }
     public int getLimitTake() { return limitTake; }
     public ModulesSettings getModules() { return modules; }
+    public EconomySettings getEconomy() { return economy; }
+
+    public static class EconomySettings {
+        private final boolean enable;
+        private final String provider;
+
+        public EconomySettings(YamlMap map) {
+            this.enable = map.get("enable").asBool(true);
+            this.provider = map.get("provider").asString("Vault");
+        }
+
+        public boolean isEnable() { return enable; }
+        public String getProvider() { return provider; }
+    }
 }

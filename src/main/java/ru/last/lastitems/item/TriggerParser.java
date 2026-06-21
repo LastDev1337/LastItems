@@ -3,34 +3,45 @@ package ru.last.lastitems.item;
 import dev.by1337.yaml.YamlMap;
 import dev.by1337.yaml.YamlValue;
 import ru.last.lastitems.LastItemsFree;
-import ru.last.lastitems.item.actions.Effect;
-import ru.last.lastitems.item.actions.EffectParser;
+import ru.last.lastitems.item.actions.*;
 import ru.last.lastitems.item.actions.types.*;
-import ru.last.lastitems.utils.TimeData;
+import ru.last.lastitems.item.requirements.*;
+import ru.last.lastitems.utils.*;
 
 import java.util.*;
 
 public class TriggerParser {
     private final LastItemsFree plugin;
 
-    public TriggerParser(LastItemsFree plugin) {
-        this.plugin = plugin;
-    }
+    public TriggerParser(LastItemsFree plugin) { this.plugin = plugin; }
 
-    public Map<ActionTrigger, List<ActionNode>> parseActions(YamlValue actionsNode) {
-        Map<ActionTrigger, List<ActionNode>> map = new EnumMap<>(ActionTrigger.class);
-        if (!(actionsNode.getRaw() instanceof List<?> list)) return map;
+    public void parseActions(YamlValue actionsNode, CooldownAction globalCooldown, List<ActionTrigger> globalCooldownTriggers, Map<ActionTrigger, List<ActionNode>> standardMap, Map<String, List<ActionNode>> customMap) {
+        if (!(actionsNode.getRaw() instanceof List<?> list)) return;
 
         for (Object obj : list) {
             YamlMap actionMap = YamlValue.wrap(obj).asYamlMap().getOrThrow();
-            String triggerStr = actionMap.get("trigger").asString("").toUpperCase(Locale.ROOT).replace(" ", "_");
-            if (!triggerStr.isEmpty() && !triggerStr.startsWith("ON_")) triggerStr = "ON_" + triggerStr;
+            String rawTriggerStr = actionMap.get("trigger").asString("").toUpperCase(Locale.ROOT).replace(" ", "_");
+            if (!rawTriggerStr.isEmpty() && !rawTriggerStr.startsWith("ON_")) rawTriggerStr = "ON_" + rawTriggerStr;
 
+            String triggerStr = rawTriggerStr;
+            TimeData interval = TimeData.parseString("20t");
+            if (rawTriggerStr.contains(":")) {
+                String[] split = rawTriggerStr.split(":", 2);
+                triggerStr = split[0];
+                interval = TimeData.parseString(split[1].toLowerCase(Locale.ROOT));
+            }
+
+            ActionTrigger trigger = null;
             try {
-                ActionTrigger trigger = ActionTrigger.valueOf(triggerStr);
+                trigger = ActionTrigger.valueOf(triggerStr);
+            } catch (IllegalArgumentException e) {
+                // Not a standard trigger, treated as custom
+            }
 
-                String defaultTarget = switch (trigger) {
-                    case ON_RIGHT_CLICK, ON_LEFT_CLICK, ON_INTERACT, ON_SWAPPING, ON_PROJECTILE_THROW,
+            String defaultTarget = "victim";
+            if (trigger != null) {
+                defaultTarget = switch (trigger) {
+                    case ON_RIGHT_CLICK, ON_LEFT_CLICK, ON_SHIFT_RIGHT_CLICK, ON_SHIFT_LEFT_CLICK, ON_INTERACT, ON_SWAPPING, ON_PROJECTILE_THROW,
                          ON_CONSUME, ON_SNEAK, ON_SPRINT, ON_JUMP, ON_DROP, ON_PICKUP, ON_JOIN, ON_QUIT, 
                          ON_DEATH, ON_RESPAWN, ON_WORLD_CHANGE, ON_BOW_SHOOT, ON_TELEPORT, ON_EXP_CHANGE,
                          ON_LEVEL_CHANGE, ON_BED_ENTER, ON_BED_LEAVE, ON_SHEAR, ON_BUCKET_FILL, 
@@ -38,29 +49,45 @@ public class TriggerParser {
                     case ON_BLOCK_BREAK, ON_BLOCK_PLACE -> "block";
                     default -> "victim";
                 };
+            }
 
-                List<Effect> effects = new ArrayList<>();
-                YamlValue effectsNode = actionMap.has("effects") ? actionMap.get("effects") : actionMap.get("cast");
+            List<Effect> effects = new ArrayList<>();
+            YamlValue effectsNode = actionMap.get("effects");
 
-                if (effectsNode != null && !effectsNode.isNull()) {
-                    effects.addAll(EffectParser.parse(effectsNode, defaultTarget, plugin));
+            if (!effectsNode.isNull()) {
+                effects.addAll(EffectParser.parse(effectsNode, defaultTarget, plugin));
+            }
+
+            VanillaAction vanilla = parseVanilla(actionMap.get("vanilla"), defaultTarget);
+            NoTargetAction noTarget = parseNoTarget(actionMap.get("no_targets"), defaultTarget);
+            
+            CooldownAction cooldownToUse = null;
+            boolean enforceCooldown = true;
+            if (actionMap.has("cooldown")) {
+                cooldownToUse = parseCooldown(actionMap.get("cooldown"), defaultTarget);
+            } else if (globalCooldown != null) {
+                cooldownToUse = globalCooldown;
+                if (trigger != null && !globalCooldownTriggers.isEmpty() && !globalCooldownTriggers.contains(trigger)) {
+                    enforceCooldown = false;
                 }
+            }
 
-                VanillaAction vanilla = parseVanilla(actionMap.get("vanilla"), defaultTarget);
-                NoTargetAction noTarget = parseNoTarget(actionMap.get("no_targets"), defaultTarget);
-                CooldownAction cooldown = parseCooldown(actionMap.get("cooldown"), defaultTarget);
-                ClearAction clear = parseClear(actionMap.get("clear"), defaultTarget);
+            ClearAction clear = parseClear(actionMap.get("clear"), defaultTarget);
 
-                YamlMap typeMap = actionMap.get("type").asYamlMap().hasResult() ? actionMap.get("type").asYamlMap().getOrThrow() : new YamlMap();
-                TriggerConditions cond = new TriggerConditions(typeMap);
+            TriggerConditions cond = new TriggerConditions(actionMap.get("type"), interval);
 
-                ActionNode node = new ActionNode(actionMap.get("value").asString("1"), actionMap.get("chance").asString("100.0"), cond, effects, noTarget, cooldown, clear, vanilla);
-                map.computeIfAbsent(trigger, k -> new ArrayList<>()).add(node);
-            } catch (IllegalArgumentException e) {
-                plugin.getDebugLogger().error("Неизвестный тип триггера '" + triggerStr + "'!");
+            List<Requirement> requirements = new ArrayList<>();
+            if (actionMap.has("requirements")) {
+                requirements.addAll(RequirementParser.parse(actionMap.get("requirements"), defaultTarget, plugin));
+            }
+
+            ActionNode node = new ActionNode(actionMap.get("value").asString("1"), actionMap.get("chance").asString("100.0"), cond, requirements, effects, noTarget, cooldownToUse, clear, vanilla, enforceCooldown);
+            if (trigger != null) {
+                standardMap.computeIfAbsent(trigger, k -> new ArrayList<>()).add(node);
+            } else {
+                customMap.computeIfAbsent(triggerStr, k -> new ArrayList<>()).add(node);
             }
         }
-        return map;
     }
 
     private VanillaAction parseVanilla(YamlValue node, String defaultTarget) {
@@ -92,7 +119,7 @@ public class TriggerParser {
         return new ClearAction(clMap.get("enable").asBool(false), clMap.get("type").asString("hand"), time, parseMessageEffects(node, defaultTarget));
     }
 
-    private CooldownAction parseCooldown(YamlValue node, String defaultTarget) {
+    public CooldownAction parseCooldown(YamlValue node, String defaultTarget) {
         if (!node.asYamlMap().hasResult()) return new CooldownAction(false, new TimeData("0", "t", "simple"), Collections.emptyList());
         YamlMap cdMap = node.asYamlMap().getOrThrow();
         TimeData time = TimeData.parse(cdMap.get("time"), "0");

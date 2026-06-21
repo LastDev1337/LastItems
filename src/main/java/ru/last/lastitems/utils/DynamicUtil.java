@@ -20,10 +20,6 @@ public class DynamicUtil {
         return (int) Math.round(evaluate(expression, context));
     }
 
-    public static long evaluateLong(String expression, TriggerContext context) {
-        return (long) Math.round(evaluate(expression, context));
-    }
-
     public static String getItemId(ItemStack item) {
         CustomItem customItem = LastItemsFree.getInstance().getItemRegistry().getCustomItem(item);
         return customItem != null ? customItem.getId() : null;

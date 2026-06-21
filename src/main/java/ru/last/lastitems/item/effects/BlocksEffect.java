@@ -1,6 +1,7 @@
 package ru.last.lastitems.item.effects;
 
 import dev.by1337.yaml.YamlMap;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -8,13 +9,12 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
-import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockEvent;
-import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.block.*;
+import org.bukkit.event.player.*;
 import org.bukkit.inventory.ItemStack;
-import ru.last.lastitems.item.TriggerContext;
-import ru.last.lastitems.utils.DynamicUtil;
+import ru.last.lastitems.api.effects.BlocksEffectEvent;
+import ru.last.lastitems.item.*;
+import ru.last.lastitems.utils.*;
 
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
@@ -196,7 +196,13 @@ public class BlocksEffect extends AbstractEffect {
                         Material type = b.getType();
                         if (INDESTRUCTIBLE.contains(type)) continue;
                         if (isAllowed(type)) {
-                            if (dropItems) {
+                            boolean shouldDrop = dropItems;
+                            BlocksEffectEvent event = new BlocksEffectEvent(target, context, b, shouldDrop);
+                            Bukkit.getPluginManager().callEvent(event);
+                            if (event.isCancelled()) continue;
+                            shouldDrop = event.isDropItems();
+                            
+                            if (shouldDrop) {
                                 if (context.item() != null) b.breakNaturally(context.item());
                                 else b.breakNaturally();
                             } else {
@@ -247,17 +253,19 @@ public class BlocksEffect extends AbstractEffect {
         double rz = dimZ <= 0 ? 1.0 : dimZ;
 
         // Делаем 3 попытки примагнитить дроп (через 1, 5 и 10 тиков).
-        // Это гарантирует, что даже если Paper/Spigot отложит спавн предмета от центрального блока, мы его поймаем.
         for (long delay : new long[]{1L, 5L, 10L}) {
-            org.bukkit.Bukkit.getScheduler().runTaskLater(ru.last.lastitems.LastItemsFree.getInstance(), () -> {
+            Bukkit.getScheduler().runTaskLater(ru.last.lastitems.LastItemsFree.getInstance(), () -> {
                 Location loc = center.getLocation().add(0.5, 0.5, 0.5);
                 for (Entity e : loc.getWorld().getNearbyEntities(loc, rx, ry, rz)) {
                     if (!(e instanceof Item item)) continue;
-                    if (!item.isValid() || item.isDead()) continue; // Исправление дюпа 1: не подбирать фантомные/мертвые предметы
+                    // Исправление от ядра №1: не подбирать фантомные/мертвые предметы
+                    if (!item.isValid() || item.isDead()) continue;
                     
                     Material mat = item.getItemStack().getType();
                     if (INDESTRUCTIBLE.contains(mat)) continue;
-                    if (mat.name().equals("END_PORTAL_FRAME")) continue;
+                    if (mat.name().equals("END_PORTAL_FRAME") ||
+                        mat.name().equals("BEDROCK")          ||
+                        mat.name().equals("BARRIER")) continue;
 
                     if (isAllowed(mat)) {
                         if (target instanceof Player p && p.isValid()) {
@@ -267,7 +275,7 @@ public class BlocksEffect extends AbstractEffect {
                             if (leftover.isEmpty()) {
                                 item.remove();
                             } else {
-                                // Исправление дюпа 2: правильное обновление стака в энтити, если инвентарь переполнен
+                                // Исправление от ядра №2: правильное обновление стака в энтити, если инвентарь переполнен
                                 item.setItemStack(leftover.values().iterator().next());
                             }
                         } else {
@@ -295,9 +303,8 @@ public class BlocksEffect extends AbstractEffect {
     }
 
     private static BlockFace resolveBlockFace(Entity target, TriggerContext context) {
-        if (context.event() instanceof org.bukkit.event.player.PlayerInteractEvent pie) {
-            BlockFace f = pie.getBlockFace();
-            if (f != null) return f;
+        if (context.event() instanceof PlayerInteractEvent pie) {
+            return pie.getBlockFace();
         }
         if (target instanceof Player player) {
             try {

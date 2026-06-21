@@ -38,5 +38,10 @@ public enum ActionTrigger {
     ON_BUCKET_FILL,       // PlayerBucketFillEvent
     ON_BUCKET_EMPTY,      // PlayerBucketEmptyEvent
     ON_ITEM_BREAK,        // PlayerItemBreakEvent
-    ON_ITEM_MEND          // PlayerItemMendEvent
+    ON_ITEM_MEND,         // PlayerItemMendEvent
+
+    // 0.2.5+ triggers
+    ON_SHIFT_LEFT_CLICK,  // PlayerInteractEvent (Shift + LEFT_CLICK)
+    ON_SHIFT_RIGHT_CLICK, // PlayerInteractEvent (Shift + RIGHT_CLICK)
+    ON_ITEM_SLOT          // Tick task for held items in specific slots
 }
